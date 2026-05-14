@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard – Pilotes de Cimentación | Torre Santa Isabel</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --primary: #1a3c5e;
+      --p2:      #2c5f8a;
+      --accent:  #e67e22;
+      --green:   #27ae60;
+      --blue:    #2980b9;
+      --purple:  #8e44ad;
+      --red:     #c0392b;
+      --teal:    #16a085;
+      --gold:    #d68910;
+      --light:   #f4f6f9;
+      --card:    #ffffff;
+      --text:    #2c3e50;
+      --muted:   #7f8c8d;
+      --border:  #dce3ea;
+      --shadow:  0 4px 16px rgba(26,60,94,.10);
+    }
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Segoe UI',Arial,sans-serif; background:var(--light); color:var(--text); font-size:14px; }
+
+    /* ── HEADER ── */
+    header { background:linear-gradient(140deg,#0f2035 0%,#1a3c5e 55%,#2c5f8a 100%); color:#fff; padding:0; }
+    .hdr-top { display:flex;align-items:stretch;padding:22px 40px 18px;gap:20px;border-bottom:1px solid rgba(255,255,255,.12); }
+    .hdr-icon { font-size:52px;line-height:1;align-self:center;flex-shrink:0; }
+    .hdr-text { flex:1; }
+    .hdr-text h1 { font-size:21px;font-weight:800;letter-spacing:.3px; }
+    .hdr-text p  { margin-top:5px;font-size:12.5px;opacity:.80;line-height:1.5; }
+    .hdr-chips { display:flex;gap:8px;margin-top:10px;flex-wrap:wrap; }
+    .chip { display:inline-flex;align-items:center;gap:5px;padding:4px 13px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase; }
+    .c7  { background:#e74c3c;color:#fff; }
+    .c8  { background:#27ae60;color:#fff; }
+    .c9  { background:#2980b9;color:#fff; }
+    .c11 { background:#8e44ad;color:#fff; }
+    .c12 { background:#d68910;color:#fff; }
+    .ci  { background:rgba(255,255,255,.18);color:#fff; }
+    .hdr-stats { display:flex;background:rgba(0,0,0,.20); }
+    .hdr-stat  { flex:1;padding:9px 0;text-align:center;border-right:1px solid rgba(255,255,255,.10); }
+    .hdr-stat:last-child { border-right:none; }
+    .hdr-stat .v { font-size:18px;font-weight:800;color:#fff; }
+    .hdr-stat .l { font-size:10px;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.4px;margin-top:1px; }
+
+    /* ── LAYOUT ── */
+    main { padding:28px 40px; max-width:1440px; margin:auto; }
+
+    /* ── SECTION TITLE ── */
+    .sec-title {
+      font-size:13px;font-weight:700;color:var(--primary);
+      text-transform:uppercase;letter-spacing:1px;
+      margin:0 0 14px;padding-left:10px;
+      border-left:4px solid var(--accent);
+    }
+
+    /* ── KPI GRID ── */
+    .kpi-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:28px; }
+    .kpi { background:var(--card);border-radius:12px;padding:18px 20px;box-shadow:var(--shadow);border-top:4px solid var(--primary); }
+    .kpi.o { border-top-color:var(--accent); }
+    .kpi.g { border-top-color:var(--green); }
+    .kpi.b { border-top-color:var(--blue); }
+    .kpi.r { border-top-color:var(--red); }
+    .kpi.p { border-top-color:var(--purple); }
+    .kpi .lbl { font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted); }
+    .kpi .val { font-size:28px;font-weight:700;color:var(--primary);line-height:1.1;margin:3px 0 2px; }
+    .kpi .unit { font-size:11.5px;color:var(--muted); }
+    .kpi .sub  { font-size:10.5px;color:var(--green);margin-top:4px;font-weight:600; }
+
+    /* ── CHART GRID ── */
+    .chart-grid { display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:28px; }
+    .chart-card { background:var(--card);border-radius:12px;padding:20px;box-shadow:var(--shadow); }
+    .chart-card.full { grid-column:1/-1; }
+    .chart-card h3 { font-size:12.5px;font-weight:700;color:var(--primary);margin-bottom:14px;display:flex;align-items:center;gap:7px; }
+    .dot { width:9px;height:9px;border-radius:50%;display:inline-block;background:var(--accent); }
+    canvas { max-height:290px; }
+
+    /* ── PROGRESS BARS ── */
+    .pb-wrap { margin-bottom:8px; }
+    .pb-hdr  { display:flex;justify-content:space-between;font-size:11px;font-weight:600;margin-bottom:3px; }
+    .pb-bg   { background:var(--border);border-radius:20px;height:9px;overflow:hidden; }
+    .pb-fill { height:100%;border-radius:20px; }
+
+    /* ── TABLE ── */
+    .tbl-card { background:var(--card);border-radius:12px;box-shadow:var(--shadow);padding:20px;margin-bottom:28px;overflow-x:auto; }
+    .tbl-card h3 { font-size:12.5px;font-weight:700;color:var(--primary);margin-bottom:12px;display:flex;align-items:center;gap:7px; }
+    table { width:100%;border-collapse:collapse;font-size:12.5px; }
+    thead tr { background:var(--primary);color:#fff; }
+    thead th { padding:9px 11px;text-align:center;font-size:11.5px;font-weight:600;white-space:nowrap; }
+    tbody tr:nth-child(even) { background:#f9fafc; }
+    tbody tr:hover { background:#eaf2fb; }
+    tbody td { padding:7px 11px;text-align:center;border-bottom:1px solid var(--border); }
+    td.eje { font-weight:700;color:var(--primary); }
+    tfoot tr { background:var(--primary);color:#fff; }
+    tfoot td { padding:9px 11px;font-weight:700;font-size:12.5px;text-align:center;border:none; }
+
+    .pill { display:inline-block;padding:2px 9px;border-radius:20px;font-size:10.5px;font-weight:700; }
+    .p7  { background:#fdedec;color:#c0392b; }
+    .p8  { background:#d5f5e3;color:#1e8449; }
+    .p9  { background:#eaf2fb;color:#1a5276; }
+    .p11 { background:#f5eef8;color:#6c3483; }
+    .p12 { background:#fef9e7;color:#9a7d0a; }
+    .p0  { background:var(--border);color:var(--muted); }
+    .sub-val { font-weight:700;color:var(--primary); }
+    .nota { font-size:10.5px;color:var(--accent);font-style:italic; }
+
+    /* ── SUMMARY GRID ── */
+    .sum-grid { display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:28px; }
+    .sum-card { background:var(--card);border-radius:12px;padding:20px;box-shadow:var(--shadow); }
+    .sum-card h3 { font-size:12.5px;font-weight:700;color:var(--primary);margin-bottom:12px;display:flex;align-items:center;gap:7px; }
+    .sum-tbl { width:100%;border-collapse:collapse;font-size:12.5px; }
+    .sum-tbl th { background:#f4f6f9;color:var(--primary);padding:7px 10px;text-align:left;font-size:11.5px;font-weight:700;border-bottom:2px solid var(--border); }
+    .sum-tbl td { padding:7px 10px;border-bottom:1px solid var(--border); }
+    .sum-tbl tr.hi td { background:#eaf2fb;font-weight:700;color:var(--primary); }
+    .note-box { margin-top:12px;padding:10px 13px;background:#eaf2fb;border-radius:7px;font-size:12px;color:var(--primary); }
+
+    footer { text-align:center;color:var(--muted);font-size:11px;padding:18px;border-top:1px solid var(--border); }
+
+    @media (max-width:900px) {
+      .chart-grid,.sum-grid { grid-template-columns:1fr; }
+      main { padding:16px; }
+    }
+  
+    /* ── BARRA DOCUMENTOS ── */
+    .doc-bar {
+      background:#fff;
+      border-bottom:2px solid #dce3ea;
+      padding:10px 40px;
+      display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    }
+    .doc-bar-label {
+      font-size:10.5px;font-weight:800;text-transform:uppercase;
+      letter-spacing:.8px;color:#7f8c8d;margin-right:4px;white-space:nowrap;
+    }
+    .doc-btn {
+      display:inline-flex;align-items:center;gap:8px;
+      padding:7px 16px;border-radius:8px;font-size:12px;font-weight:700;
+      text-decoration:none;transition:all .18s ease;
+      border:2px solid transparent;white-space:nowrap;
+    }
+    .doc-btn:hover { transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.15); }
+    .doc-btn .btn-icon { font-size:16px;line-height:1; }
+    .doc-btn .btn-text { display:flex;flex-direction:column;line-height:1.2; }
+    .doc-btn .btn-text span { font-size:9.5px;font-weight:500;opacity:.75;margin-top:1px; }
+    .doc-btn-plan  { background:#eaf2fb;color:#1a5276;border-color:#aed6f1; }
+    .doc-btn-plan:hover  { background:#1a5276;color:#fff; }
+    .doc-btn-excel { background:#e9f7ef;color:#1e8449;border-color:#a9dfbf; }
+    .doc-btn-excel:hover { background:#1e8449;color:#fff; }
+    .doc-btn-pdf   { background:#fdedec;color:#922b21;border-color:#f1948a; }
+    .doc-btn-pdf:hover   { background:#922b21;color:#fff; }
+    .doc-bar-note  { margin-left:auto;font-size:10.5px;color:#95a5a6;font-style:italic; }
+
+  </style>
+</head>
+<body>
+
+<!-- ══ HEADER ══ -->
+<header>
+  <div class="hdr-top">
+    <div class="hdr-icon">🏗️</div>
+    <div class="hdr-text">
+      <h1>Construcción de Pilotes — Torre Santa Isabel</h1>
+      <p>Cimentación profunda en <strong>Concreto 28 MPa (280 kg/cm²)</strong> · Diámetro uniforme <strong>Ø 0,40 m</strong> · Dirección Y · 21 ejes<br>
+         El acero de refuerzo se paga en su respectivo ítem · 5 tipologías de longitud</p>
+      <div class="hdr-chips">
+        <span class="chip c7">7 m Ø0,40 — 49 uds</span>
+        <span class="chip c8">8 m Ø0,40 — 60 uds</span>
+        <span class="chip c9">9 m Ø0,40 — 9 uds</span>
+        <span class="chip c11">11 m Ø0,40 — 23 uds</span>
+        <span class="chip c12">12 m Ø0,40 — 6 uds</span>
+        <span class="chip ci">📊 Informe Gerencial</span>
+      </div>
+    </div>
+  </div>
+  <div class="hdr-stats">
+    <div class="hdr-stat"><div class="v">147</div><div class="l">Total Pilotes</div></div>
+    <div class="hdr-stat"><div class="v">21</div><div class="l">Ejes Dir. Y</div></div>
+    <div class="hdr-stat"><div class="v">1.251</div><div class="l">m Long. Total</div></div>
+    <div class="hdr-stat"><div class="v">165,07</div><div class="l">m³ Concreto (+5%)</div></div>
+    <div class="hdr-stat"><div class="v">157,21</div><div class="l">m³ Vol. Neto</div></div>
+    <div class="hdr-stat"><div class="v">16.541</div><div class="l">kg Acero (+2%)</div></div>
+    <div class="hdr-stat"><div class="v">Ø 0,40</div><div class="l">m Diámetro</div></div>
+    <div class="hdr-stat"><div class="v">8 m</div><div class="l">Longitud Más Usada</div></div>
+  </div>
+</header>
+
+<!-- ══ BARRA DE DOCUMENTOS ══
+     INSTRUCCIONES: Reemplace cada URL_DRIVE_... con el enlace de Google Drive correspondiente.
+     Para obtener el link: en Drive → clic derecho al archivo → "Obtener enlace" → "Cualquier persona con el enlace".
+-->
+<div class="doc-bar">
+  <span class="doc-bar-label">📁 Documentos — Pilotes:</span>
+  <a href="URL_DRIVE_PLANO_PILOTES" target="_blank" rel="noopener" class="doc-btn doc-btn-plan">
+    <span class="btn-icon">📐</span>
+    <span class="btn-text">Planos de Referencia<span>Abrir en Google Drive ↗</span></span>
+  </a>
+  <a href="URL_DRIVE_EXCEL_PILOTES" target="_blank" rel="noopener" class="doc-btn doc-btn-excel">
+    <span class="btn-icon">📊</span>
+    <span class="btn-text">Cantidades en Excel<span>Abrir en Google Drive ↗</span></span>
+  </a>
+  <a href="URL_DRIVE_PDF_PILOTES" target="_blank" rel="noopener" class="doc-btn doc-btn-pdf">
+    <span class="btn-icon">📋</span>
+    <span class="btn-text">Cartilla de Despiece PDF<span>Abrir en Google Drive ↗</span></span>
+  </a>
+  <span class="doc-bar-note">💡 Se abre en pestaña nueva · ciérrela para volver al dashboard</span>
+</div>
+
+<main>
+
+  <!-- ── KPIs ── -->
+  <div class="sec-title" style="margin-top:0">Indicadores Clave del Proyecto</div>
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="lbl">Total Pilotes</div>
+      <div class="val">147</div>
+      <div class="unit">Unidades instaladas</div>
+      <div class="sub">21 ejes · Sentido Y</div>
+    </div>
+    <div class="kpi o">
+      <div class="lbl">Longitud Total</div>
+      <div class="val">1.251</div>
+      <div class="unit">metros lineales (c/descabece)</div>
+      <div class="sub">Promedio 8,5 m/pilote</div>
+    </div>
+    <div class="kpi g">
+      <div class="lbl">Volumen Concreto</div>
+      <div class="val">165,07</div>
+      <div class="unit">m³ (inc. 5% desperdicio)</div>
+      <div class="sub">Neto: 157,21 m³</div>
+    </div>
+    <div class="kpi b">
+      <div class="lbl">Acero Refuerzo</div>
+      <div class="val">16.541</div>
+      <div class="unit">kg (inc. 2% desperdicio)</div>
+      <div class="sub">Neto: 16.216,74 kg</div>
+    </div>
+    <div class="kpi r">
+      <div class="lbl">Tipo Más Frecuente</div>
+      <div class="val">8 m</div>
+      <div class="unit">60 uds · 40,8% del total</div>
+      <div class="sub">Vol. 61,45 m³ · 39,1% volumen</div>
+    </div>
+    <div class="kpi p">
+      <div class="lbl">Eje con más pilotes</div>
+      <div class="val">EJE 19</div>
+      <div class="unit">13 pilotes (8,8% del total)</div>
+      <div class="sub">Mix: 5×7m + 8×8m</div>
+    </div>
+  </div>
+
+  <!-- ── CHARTS ── -->
+  <div class="sec-title">Análisis Visual</div>
+  <div class="chart-grid">
+
+    <div class="chart-card">
+      <h3><span class="dot"></span>Distribución de Pilotes por Longitud (uds)</h3>
+      <canvas id="cLong"></canvas>
+    </div>
+
+    <div class="chart-card">
+      <h3><span class="dot" style="background:var(--green)"></span>Volumen de Concreto por Tipología (m³)</h3>
+      <canvas id="cVolDonut"></canvas>
+    </div>
+
+    <div class="chart-card full">
+      <h3><span class="dot" style="background:var(--blue)"></span>Pilotes por Eje — Cantidad Total por Sentido Y</h3>
+      <canvas id="cEjes" style="max-height:330px"></canvas>
+    </div>
+
+    <div class="chart-card">
+      <h3><span class="dot" style="background:var(--purple)"></span>Participación por Longitud (% del total)</h3>
+      <div style="margin-top:6px">
+        <div class="pb-wrap">
+          <div class="pb-hdr"><span style="color:var(--red)">Pilotes 7 m</span><span>49 uds · 33,3%</span></div>
+          <div class="pb-bg"><div class="pb-fill" style="width:33.3%;background:var(--red)"></div></div>
+        </div>
+        <div class="pb-wrap">
+          <div class="pb-hdr"><span style="color:var(--green)">Pilotes 8 m</span><span>60 uds · 40,8%</span></div>
+          <div class="pb-bg"><div class="pb-fill" style="width:40.8%;background:var(--green)"></div></div>
+        </div>
+        <div class="pb-wrap">
+          <div class="pb-hdr"><span style="color:var(--blue)">Pilotes 9 m</span><span>9 uds · 6,1%</span></div>
+          <div class="pb-bg"><div class="pb-fill" style="width:6.1%;background:var(--blue)"></div></div>
+        </div>
+        <div class="pb-wrap">
+          <div class="pb-hdr"><span style="color:var(--purple)">Pilotes 11 m</span><span>23 uds · 15,6%</span></div>
+          <div class="pb-bg"><div class="pb-fill" style="width:15.6%;background:var(--purple)"></div></div>
+        </div>
+        <div class="pb-wrap">
+          <div class="pb-hdr"><span style="color:var(--gold)">Pilotes 12 m</span><span>6 uds · 4,1%</span></div>
+          <div class="pb-bg"><div class="pb-fill" style="width:4.1%;background:var(--gold)"></div></div>
+        </div>
+        <div style="margin-top:14px;padding:10px;background:#f4f6f9;border-radius:8px;font-size:11.5px">
+          <strong>Longitud total por tipología:</strong><br>
+          7m → 350,35 m &nbsp;|&nbsp; 8m → 489,00 m &nbsp;|&nbsp; 9m → 82,35 m<br>
+          11m → 256,45 m &nbsp;|&nbsp; 12m → 72,90 m &nbsp;|&nbsp; <strong>Total: 1.251,05 m</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h3><span class="dot" style="background:var(--teal)"></span>Longitud Total por Tipología (m lineales)</h3>
+      <canvas id="cLongTotal"></canvas>
+    </div>
+
+  </div>
+
+  <!-- ── TABLA DETALLE ── -->
+  <div class="sec-title">Tabla de Cómputo — Detalle por Eje</div>
+  <div class="tbl-card">
+    <h3>🔩 21 Ejes · Dirección Y · Concreto 28 MPa · Ø 0,40 m</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Eje</th>
+          <th>Dir.</th>
+          <th>7m Ø0,40</th>
+          <th>8m Ø0,40</th>
+          <th>9m Ø0,40</th>
+          <th>11m Ø0,40</th>
+          <th>12m Ø0,40</th>
+          <th>Subtotal</th>
+          <th>Nota</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="eje">EJE 1</td><td>Y</td><td><span class="pill p7">1</span></td><td><span class="pill p0">—</span></td><td><span class="pill p0">—</span></td><td><span class="pill p11">5</span></td><td><span class="pill p0">—</span></td><td class="sub-val">6</td><td></td></tr>
+        <tr><td class="eje">EJE 2</td><td>Y</td><td><span class="pill p7">3</span></td><td><span class="pill p8">5</span></td><td><span class="pill p0">—</span></td><td><span class="pill p0">—</span></td><td><span class="pill p0">—</span></td><td class="sub-val">8</td><td></td></tr>
+        <tr><td class="eje">EJE 3</td><td>Y</td><td><span class="pill p7">6</span></td><td><span class="pill p0">—</span></td><td><span class="pill p0">—</span></td><td><span class="pill p11">2</span></td><td><span class="pill p12">2</span></td><td class="sub-val">10</td><td></td></tr>
+        <tr><td class="eje">EJE 4</td><td>Y</td><td><span class="pill p7">3</span></td><td><span class="pill p0">—</span></td><td><span class="pill p0">—</span></td><td><span class="pill p11">1</span></td><td><span class="pill p0">—</span></td><td class="sub-val">4</td><td></td></tr>
+        <tr><td class="eje">EJE 5</td><td>Y</td><td><span class="pill p0">—</span></td><td><span class="pill p0">—</span></td><td><span class="pill p0">—</span></td><td><span class="pill p11">2</span></td><td><span class="pill p0">—</span></td><td class="sub-val">2</td><td></td></tr>
+        <tr><td class="eje">EJE 6</td><td>Y</td><td><span class="pill p7">3</span></td><td><span class="pill p8">6</span></td><td><span class="pill p0">—</span></td><td><span class="pill p11">3</span></td><td><span class="pill p0">—</span></td><td class="sub-val">12</td><td></td></tr>
+        <tr><td class="eje">EJE 7</td><td>Y</td><td><span class="pill p7">1</span></td><td><span class="pill p8">5</span></td><td><span class="pill p0">—</span></td><td><span class="pill p11">1</span></td><td><span class="pill p0">—</span></td><td class="sub-val">7</td><td></td></tr>
+        <tr><td class="eje">EJE 8</td><td>Y</td><td><span class="pill p7">6</span></td><td><span class="pill p0">—</span></td><td><span class="pill p0">—</span></td><td><span class="pill p11">2</span></td><td><span class="pill p12">2</span></td><td class="sub-val">10</td><td></td></tr>
+        <tr><td class="eje">EJE 9</td><td>Y</td><td><span class="pill p7">3</span></td><td><span class="pill p8">1</span></td><td><span class="pill p0">—</span></td><td><span class="pill p0">—</span></td><td><span class="pill p0">—</span></td><td class="sub-val">4</td><td></td></tr>
+        <tr><td class="eje">EJE 10</td><td>Y</td><td><span class="pill p7">1</span></td><td><span class="pill p0">—</span></td><td><span class="pill p0">—</span></td><td><span class="pill p11">1</span></td><td><span class="pill p0">—</span></td><td class="sub-val">2</td><td></td></tr>
+        <tr><td class="eje">EJE 11</td><td>Y</td><td><span class="pill p7">2</span></td><td><span class="pill p8">8</span></td><td><span class="pill p0">—</span></td><td><span class="pill p0">—</span></td><td><span class="pill p0">—</span></td><td class="sub-val">10</td><td></td></tr>
+        <tr><td class="eje">EJE 13</td><td>Y</td><td><span class="pill p7">1</span></td><td><span class="pill p0">—</span></td><td><span class="pill p0">—</span></td><td><span class="pill p0">—</span></td><td><span class="pill p0">—</span></td><td class="sub-val">1</td><td></td></tr>
+        <tr><td class="eje">EJE 14</td><td>Y</td><td><span class="pill p7">2</span></td><td><span class="pill p8">9</span></td><td><span class="pill p0">—</span></td><td><span class="pill p11">1</span></td><td><span class="pill p0">—</span></td><td class="sub-val">12</td><td></td></tr>
+        <tr><td class="eje">EJE 15</td><td>Y</td><td><span class="pill p0">—</span></td><td><span class="pill p8">1</span></td><td><span class="pill p0">—</span></td><td><span class="pill p11">1</span></td><td><span class="pill p0">—</span></td><td class="sub-val">2</td><td></td></tr>
+        <tr><td class="eje">EJE 16</td><td>Y</td><td><span class="pill p0">—</span></td><td><span class="pill p8">4</span></td><td><span class="pill p0">—</span></td><td><span class="pill p0">—</span></td><td><span class="pill p0">—</span></td><td class="sub-val">4</td><td></td></tr>
+        <tr><td class="eje">EJE 17</td><td>Y</td><td><span class="pill p7">5</span></td><td><span class="pill p8">1</span></td><td><span class="pill p0">—</span></td><td><span class="pill p11">2</span></td><td><span class="pill p12">2</span></td><td class="sub-val">10</td><td></td></tr>
+        <tr><td class="eje">EJE 18</td><td>Y</td><td><span class="pill p0">—</span></td><td><span class="pill p8">6</span></td><td><span class="pill p9">2</span></td><td><span class="pill p0">—</span></td><td><span class="pill p0">—</span></td><td class="sub-val">8</td><td></td></tr>
+        <tr><td class="eje">EJE 19</td><td>Y</td><td><span class="pill p7">5</span></td><td><span class="pill p8">8</span></td><td><span class="pill p0">—</span></td><td><span class="pill p0">—</span></td><td><span class="pill p0">—</span></td><td class="sub-val">13</td><td></td></tr>
+        <tr><td class="eje">EJE 19'</td><td>Y</td><td><span class="pill p7">3</span></td><td><span class="pill p0">—</span></td><td><span class="pill p9">1</span></td><td><span class="pill p11">1</span></td><td><span class="pill p0">—</span></td><td class="sub-val">5</td><td class="nota">⚠ 1 und sin dimensiones</td></tr>
+        <tr><td class="eje">EJE 20</td><td>Y</td><td><span class="pill p7">4</span></td><td><span class="pill p0">—</span></td><td><span class="pill p9">6</span></td><td><span class="pill p11">1</span></td><td><span class="pill p0">—</span></td><td class="sub-val">11</td><td></td></tr>
+        <tr><td class="eje">EJE 21</td><td>Y</td><td><span class="pill p0">—</span></td><td><span class="pill p8">6</span></td><td><span class="pill p0">—</span></td><td><span class="pill p0">—</span></td><td><span class="pill p0">—</span></td><td class="sub-val">6</td><td></td></tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2"><strong>TOTALES</strong></td>
+          <td><strong>49</strong></td>
+          <td><strong>60</strong></td>
+          <td><strong>9</strong></td>
+          <td><strong>23</strong></td>
+          <td><strong>6</strong></td>
+          <td><strong>147</strong></td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- ── RESUMEN MATERIALES ── -->
+  <div class="sec-title">Cuantías de Materiales</div>
+  <div class="sum-grid">
+    <div class="sum-card">
+      <h3>🧱 Concreto 280 kg/cm² (28 MPa)</h3>
+      <table class="sum-tbl">
+        <thead>
+          <tr><th>Tipología</th><th>Cant.</th><th>Long. c/desc. (m)</th><th>Long. Total (m)</th><th>Vol. Unit. (m³)</th><th>Vol. (m³)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>7 m Ø0,40</td><td>49</td><td>7,15</td><td>350,35</td><td>0,898</td><td>44,03</td></tr>
+          <tr><td>8 m Ø0,40</td><td>60</td><td>8,15</td><td>489,00</td><td>1,024</td><td>61,45</td></tr>
+          <tr><td>9 m Ø0,40</td><td>9</td><td>9,15</td><td>82,35</td><td>1,150</td><td>10,35</td></tr>
+          <tr><td>11 m Ø0,40</td><td>23</td><td>11,15</td><td>256,45</td><td>1,401</td><td>32,23</td></tr>
+          <tr><td>12 m Ø0,40</td><td>6</td><td>12,15</td><td>72,90</td><td>1,527</td><td>9,16</td></tr>
+          <tr class="hi"><td>SUBTOTAL</td><td>147</td><td>—</td><td>1.251,05</td><td>—</td><td>157,21</td></tr>
+          <tr><td colspan="5"><strong>+ Desperdicio 5%</strong></td><td><strong>165,07 m³</strong></td></tr>
+        </tbody>
+      </table>
+      <div class="note-box">📐 <strong>Diámetro:</strong> Ø 0,40 m uniforme en todos los pilotes · Volumen unitario = π/4 × 0,40² × L+descabece</div>
+    </div>
+    <div class="sum-card">
+      <h3>⚙️ Acero de Refuerzo — Fy = 420 MPa (60.000 PSI)</h3>
+      <table class="sum-tbl">
+        <thead>
+          <tr><th>Elemento</th><th>Barra No.</th><th>Longitud (m)</th><th>Kg/ml</th><th>Total (kg)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Estribos</td><td>No. 3</td><td>9.373,08</td><td>0,56</td><td>6.427,50</td></tr>
+          <tr><td>Longitudinal</td><td>No. 5</td><td>6.307,50</td><td>1,552</td><td>9.789,24</td></tr>
+          <tr class="hi"><td colspan="4">SUBTOTAL ACERO</td><td>16.216,74 kg</td></tr>
+          <tr><td colspan="4"><strong>+ Desperdicio 2%</strong></td><td><strong>16.541,07 kg</strong></td></tr>
+        </tbody>
+      </table>
+      <div class="note-box">ℹ️ El acero de refuerzo se cotiza y paga en su respectivo ítem, independiente del concreto de pilotes.</div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  Dashboard Gerencial · Construcción de Pilotes Cimentación · Torre Santa Isabel · Concreto 28 MPa · Ø 0,40 m · Datos: PILOTES.xlsx
+</footer>
+
+<script>
+  const c7='#e74c3c', c8='#27ae60', c9='#2980b9', c11='#8e44ad', c12='#d68910';
+
+  // 1) Bar: cantidad por longitud
+  new Chart(document.getElementById('cLong'), {
+    type: 'bar',
+    data: {
+      labels: ['7m Ø0,40','8m Ø0,40','9m Ø0,40','11m Ø0,40','12m Ø0,40'],
+      datasets: [{ label:'Pilotes', data:[49,60,9,23,6],
+        backgroundColor:[c7,c8,c9,c11,c12], borderRadius:6, borderSkipped:false }]
+    },
+    options: {
+      responsive:true,
+      plugins:{ legend:{display:false},
+        tooltip:{ callbacks:{ label: ctx=>` ${ctx.parsed.y} pilotes (${((ctx.parsed.y/147)*100).toFixed(1)}%)` }}},
+      scales:{ y:{beginAtZero:true,grid:{color:'#eee'},ticks:{stepSize:10}}, x:{grid:{display:false}} }
+    }
+  });
+
+  // 2) Donut: volumen por tipo
+  new Chart(document.getElementById('cVolDonut'), {
+    type:'doughnut',
+    data:{
+      labels:['7m — 44,03 m³','8m — 61,45 m³','9m — 10,35 m³','11m — 32,23 m³','12m — 9,16 m³'],
+      datasets:[{ data:[44.03,61.45,10.35,32.23,9.16],
+        backgroundColor:[c7,c8,c9,c11,c12], hoverOffset:8, borderWidth:3, borderColor:'#fff' }]
+    },
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{ position:'right', labels:{font:{size:11},boxWidth:12} },
+        tooltip:{ callbacks:{ label: ctx=>` ${ctx.label} — ${((ctx.parsed/157.21)*100).toFixed(1)}%` }}
+      }, cutout:'62%'
+    }
+  });
+
+  // 3) Bar: pilotes por eje
+  const ejesL = ['EJE 1','EJE 2','EJE 3','EJE 4','EJE 5','EJE 6','EJE 7','EJE 8','EJE 9','EJE 10','EJE 11','EJE 13','EJE 14','EJE 15','EJE 16','EJE 17','EJE 18','EJE 19',"EJE 19'",'EJE 20','EJE 21'];
+  const ejesD = [6,8,10,4,2,12,7,10,4,2,10,1,12,2,4,10,8,13,5,11,6];
+  const ejesC = ejesD.map(v=> v>=12?'#1a3c5e':v>=8?'#2980b9':v>=5?'#27ae60':'#95a5a6');
+
+  new Chart(document.getElementById('cEjes'), {
+    type:'bar',
+    data:{ labels:ejesL, datasets:[{ label:'Pilotes', data:ejesD,
+      backgroundColor:ejesC, borderRadius:5, borderSkipped:false }] },
+    options:{
+      responsive:true,
+      plugins:{ legend:{display:false},
+        tooltip:{ callbacks:{ label: ctx=>` ${ctx.parsed.y} pilotes` }}},
+      scales:{ y:{beginAtZero:true,grid:{color:'#eee'},ticks:{stepSize:2}}, x:{grid:{display:false},ticks:{font:{size:11}}} }
+    }
+  });
+
+  // 4) Bar: longitud total por tipo
+  new Chart(document.getElementById('cLongTotal'), {
+    type:'bar',
+    data:{
+      labels:['7m','8m','9m','11m','12m'],
+      datasets:[{ label:'Metros lineales', data:[350.35,489,82.35,256.45,72.9],
+        backgroundColor:[c7,c8,c9,c11,c12], borderRadius:6, borderSkipped:false }]
+    },
+    options:{
+      responsive:true,
+      plugins:{ legend:{display:false},
+        tooltip:{ callbacks:{ label: ctx=>` ${ctx.parsed.y.toFixed(2)} m (${((ctx.parsed.y/1251.05)*100).toFixed(1)}%)` }}},
+      scales:{ y:{beginAtZero:true,grid:{color:'#eee'},title:{display:true,text:'Metros Lineales',font:{size:11}}}, x:{grid:{display:false}} }
+    }
+  });
+</script>
+</body>
+</html>

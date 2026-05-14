@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard – Placas de Entrepiso | Torre Santa Isabel</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --ink:      #1c2b3a;
+      --ink2:     #2c3e50;
+      --c280:     #c0392b;
+      --c245:     #e67e22;
+      --c210:     #2980b9;
+      --green:    #27ae60;
+      --purple:   #6c3483;
+      --teal:     #148f77;
+      --light:    #f2f4f7;
+      --card:     #ffffff;
+      --border:   #d5dce6;
+      --muted:    #7f8c8d;
+      --shadow:   0 3px 14px rgba(28,43,58,.10);
+      --accent:   #e67e22;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--light); color: var(--ink2); font-size: 13.5px; }
+
+    /* ════ HEADER ════ */
+    header {
+      background: linear-gradient(140deg, #0f2035 0%, #1c3d5c 55%, #1a5276 100%);
+      color: #fff; padding: 0;
+    }
+    .hdr-top {
+      display: flex; align-items: stretch;
+      padding: 24px 40px 20px;
+      gap: 22px;
+      border-bottom: 1px solid rgba(255,255,255,.12);
+    }
+    .hdr-icon { font-size: 54px; line-height: 1; align-self: center; flex-shrink:0; }
+    .hdr-text { flex: 1; }
+    .hdr-text h1 { font-size: 22px; font-weight: 800; letter-spacing: .3px; }
+    .hdr-text p  { margin-top: 5px; font-size: 12.5px; opacity: .78; line-height: 1.5; }
+    .hdr-chips { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700;
+      letter-spacing: .4px; text-transform: uppercase;
+    }
+    .chip-280  { background: var(--c280); color:#fff; }
+    .chip-245  { background: var(--c245); color:#fff; }
+    .chip-210  { background: var(--c210); color:#fff; }
+    .chip-info { background: rgba(255,255,255,.18); color:#fff; }
+
+    .hdr-stats {
+      display: flex; gap: 0;
+      background: rgba(0,0,0,.18);
+    }
+    .hdr-stat {
+      flex:1; padding: 10px 0; text-align: center;
+      border-right: 1px solid rgba(255,255,255,.10);
+    }
+    .hdr-stat:last-child { border-right:none; }
+    .hdr-stat .v { font-size: 19px; font-weight: 800; color: #fff; }
+    .hdr-stat .l { font-size: 10px; color: rgba(255,255,255,.65); text-transform: uppercase; letter-spacing: .4px; margin-top:1px; }
+
+    /* ════ MAIN ════ */
+    main { padding: 24px 40px; max-width: 1400px; margin: auto; }
+
+    /* ════ SECTION TITLE ════ */
+    .sec {
+      font-size: 11px; font-weight: 800; color: var(--ink);
+      text-transform: uppercase; letter-spacing: 1.2px;
+      margin: 28px 0 14px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .sec::after { content:''; flex:1; height:1px; background: var(--border); }
+
+    /* ════ KPI ════ */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+    }
+    .kpi {
+      background: var(--card); border-radius: 10px;
+      padding: 16px 18px; box-shadow: var(--shadow);
+      border-top: 3px solid var(--ink);
+    }
+    .kpi.r { border-top-color: var(--c280); }
+    .kpi.o { border-top-color: var(--c245); }
+    .kpi.b { border-top-color: var(--c210); }
+    .kpi.g { border-top-color: var(--green); }
+    .kpi.p { border-top-color: var(--purple); }
+    .kpi .lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
+    .kpi .val { font-size: 26px; font-weight: 800; color: var(--ink); line-height: 1.1; margin: 3px 0 2px; }
+    .kpi .unit{ font-size: 11px; color: var(--muted); }
+    .kpi .sub { font-size: 10.5px; color: var(--green); font-weight: 700; margin-top: 4px; }
+
+    /* ════ CHART GRID ════ */
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    .card {
+      background: var(--card); border-radius: 10px;
+      padding: 20px; box-shadow: var(--shadow);
+    }
+    .card.span2 { grid-column: span 2; }
+    .card h4 {
+      font-size: 11.5px; font-weight: 700; color: var(--ink);
+      margin-bottom: 14px; display: flex; align-items: center; gap: 7px;
+    }
+    .dot { width:9px;height:9px;border-radius:50%;display:inline-block;background:var(--accent); }
+    canvas { max-height: 280px; }
+
+    /* ════ BUILDING DIAGRAM ════ */
+    .building-wrap { padding: 6px 0; }
+    .floor-row {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 5px;
+    }
+    .floor-label {
+      font-size: 10.5px; font-weight: 700; color: var(--ink);
+      width: 72px; flex-shrink: 0; text-align: right;
+    }
+    .floor-bar-bg {
+      flex:1; background: #eef1f5; border-radius: 4px; height: 22px;
+      overflow: hidden; position: relative;
+    }
+    .floor-bar-fill {
+      height: 100%; border-radius: 4px;
+      display: flex; align-items: center; padding-left: 8px;
+      font-size: 10px; font-weight: 700; color: #fff;
+      white-space: nowrap; transition: width .5s ease;
+    }
+    .floor-meta {
+      font-size: 10.5px; color: var(--muted); width: 100px; flex-shrink:0;
+      text-align: right;
+    }
+    .floor-meta strong { color: var(--ink); }
+    .bg-280 { background: linear-gradient(90deg, #c0392b, #e74c3c); }
+    .bg-245 { background: linear-gradient(90deg, #ca6f1e, #e67e22); }
+    .bg-210 { background: linear-gradient(90deg, #1a6fa3, #2980b9); }
+
+    /* ════ TABLA PRINCIPAL ════ */
+    .tbl-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    thead tr { background: var(--ink); color: #fff; }
+    thead th {
+      padding: 9px 11px; text-align: center;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: .2px; white-space: nowrap;
+    }
+    tbody tr:nth-child(even) { background: #f8f9fc; }
+    tbody tr:hover { background: #e9f2fb; }
+    tbody td { padding: 7px 11px; text-align: center; border-bottom: 1px solid var(--border); }
+    td.left { text-align: left; font-weight: 600; color: var(--ink); white-space: nowrap; }
+    .badge-280 { background:#fdedec;color:#c0392b;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:700;display:inline-block; }
+    .badge-245 { background:#fef0e6;color:#ca6f1e;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:700;display:inline-block; }
+    .badge-210 { background:#eaf3fb;color:#1a6fa3;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:700;display:inline-block; }
+    .badge-cp  { background:#eafaf1;color:#1e8449;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:700;display:inline-block; }
+    .vol-hi { font-weight:800;color:#1e8449; }
+    .vol-md { font-weight:700;color:#1a6fa3; }
+    .vol-lo { color:var(--muted); }
+    tfoot tr { background: var(--ink); color:#fff; }
+    tfoot td { padding: 9px 11px; font-weight:700;font-size:12.5px;text-align:center;border:none; }
+
+    /* ════ PROGRESS BARS ════ */
+    .pb { margin-bottom:7px; }
+    .pb-hdr { display:flex;justify-content:space-between;font-size:11px;font-weight:700;margin-bottom:3px; }
+    .pb-bg { background:var(--border);border-radius:20px;height:8px;overflow:hidden; }
+    .pb-fill { height:100%;border-radius:20px; }
+
+    /* ════ SUMMARY CARDS ════ */
+    .sum-table { width:100%;border-collapse:collapse;font-size:12.5px; }
+    .sum-table th { background:#f2f4f7;color:var(--ink);padding:7px 10px;text-align:left;font-size:11.5px;font-weight:700;border-bottom:2px solid var(--border); }
+    .sum-table td { padding:7px 10px;border-bottom:1px solid var(--border); }
+    .sum-table tr.hi td { background:#e9f2fb;font-weight:800;color:var(--ink); }
+    .sum-table tr.hi2 td { background:#eafaf1;font-weight:800;color:#1e8449; }
+    .note { margin-top:12px;padding:10px 13px;background:#f2f4f7;border-radius:7px;font-size:11.5px;color:var(--ink);border-left:3px solid var(--accent); }
+
+    /* ════ LEGEND ════ */
+    .legend { display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px; }
+    .legend-item { display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600; }
+    .legend-sq { width:12px;height:12px;border-radius:3px; }
+
+    footer { text-align:center;color:var(--muted);font-size:11px;padding:18px;border-top:1px solid var(--border);margin-top:10px; }
+
+    @media (max-width:1000px){
+      .kpi-grid { grid-template-columns:repeat(3,1fr); }
+      .row-2,.row-3 { grid-template-columns:1fr; }
+      .card.span2 { grid-column:1; }
+      main { padding:16px; }
+      .hdr-top { padding:18px 16px; }
+      .hdr-stats { flex-wrap:wrap; }
+    }
+  
+    /* ── BARRA DOCUMENTOS ── */
+    .doc-bar {
+      background:#fff;
+      border-bottom:2px solid #dce3ea;
+      padding:10px 40px;
+      display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    }
+    .doc-bar-label {
+      font-size:10.5px;font-weight:800;text-transform:uppercase;
+      letter-spacing:.8px;color:#7f8c8d;margin-right:4px;white-space:nowrap;
+    }
+    .doc-btn {
+      display:inline-flex;align-items:center;gap:8px;
+      padding:7px 16px;border-radius:8px;font-size:12px;font-weight:700;
+      text-decoration:none;transition:all .18s ease;
+      border:2px solid transparent;white-space:nowrap;
+    }
+    .doc-btn:hover { transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.15); }
+    .doc-btn .btn-icon { font-size:16px;line-height:1; }
+    .doc-btn .btn-text { display:flex;flex-direction:column;line-height:1.2; }
+    .doc-btn .btn-text span { font-size:9.5px;font-weight:500;opacity:.75;margin-top:1px; }
+    .doc-btn-plan  { background:#eaf2fb;color:#1a5276;border-color:#aed6f1; }
+    .doc-btn-plan:hover  { background:#1a5276;color:#fff; }
+    .doc-btn-excel { background:#e9f7ef;color:#1e8449;border-color:#a9dfbf; }
+    .doc-btn-excel:hover { background:#1e8449;color:#fff; }
+    .doc-btn-pdf   { background:#fdedec;color:#922b21;border-color:#f1948a; }
+    .doc-btn-pdf:hover   { background:#922b21;color:#fff; }
+    .doc-bar-note  { margin-left:auto;font-size:10.5px;color:#95a5a6;font-style:italic; }
+
+  </style>
+</head>
+<body>
+
+<!-- ══════ HEADER ══════ -->
+<header>
+  <div class="hdr-top">
+    <div class="hdr-icon">🏢</div>
+    <div class="hdr-text">
+      <h1>Placas de Entrepiso y Contrapiso — Torre Santa Isabel</h1>
+      <p>Ítem 3.2 · Concreto estructural 280 / 245 / 210 kg/cm² · Espesor de losa 0,12 m · 13 niveles (Piso 1–12 + Cubierta)<br>
+         El acero de refuerzo se paga en su respectivo ítem · Ref. Cartilla VA — Planos de estructura</p>
+      <div class="hdr-chips">
+        <span class="chip chip-280">🔴 280 kg/cm² — Pisos 1–4</span>
+        <span class="chip chip-245">🟠 245 kg/cm² — Pisos 5–7</span>
+        <span class="chip chip-210">🔵 210 kg/cm² — Pisos 8–12 + Cubierta</span>
+        <span class="chip chip-info">📊 Informe Gerencial</span>
+      </div>
+    </div>
+  </div>
+  <div class="hdr-stats">
+    <div class="hdr-stat"><div class="v">13</div><div class="l">Niveles</div></div>
+    <div class="hdr-stat"><div class="v">5.395</div><div class="l">m² Área Total</div></div>
+    <div class="hdr-stat"><div class="v">679,77</div><div class="l">m³ Concreto (+5%)</div></div>
+    <div class="hdr-stat"><div class="v">54.590</div><div class="l">kg Acero (+2%)</div></div>
+    <div class="hdr-stat"><div class="v">3</div><div class="l">Clases Concreto</div></div>
+    <div class="hdr-stat"><div class="v">0,12</div><div class="l">m Espesor Losa</div></div>
+    <div class="hdr-stat"><div class="v">647,40</div><div class="l">m³ Vol. Neto</div></div>
+    <div class="hdr-stat"><div class="v">535</div><div class="l">m² Piso Mayor (P2)</div></div>
+  </div>
+</header>
+
+<!-- ══ BARRA DE DOCUMENTOS ══
+     INSTRUCCIONES: Reemplace cada URL_DRIVE_... con el enlace de Google Drive correspondiente.
+     Para obtener el link: en Drive → clic derecho al archivo → "Obtener enlace" → "Cualquier persona con el enlace".
+-->
+<div class="doc-bar">
+  <span class="doc-bar-label">📁 Documentos — Placas Entrepiso:</span>
+  <a href="URL_DRIVE_PLANO_PLACAS" target="_blank" rel="noopener" class="doc-btn doc-btn-plan">
+    <span class="btn-icon">📐</span>
+    <span class="btn-text">Planos de Referencia<span>Abrir en Google Drive ↗</span></span>
+  </a>
+  <a href="URL_DRIVE_EXCEL_PLACAS" target="_blank" rel="noopener" class="doc-btn doc-btn-excel">
+    <span class="btn-icon">📊</span>
+    <span class="btn-text">Cantidades en Excel<span>Abrir en Google Drive ↗</span></span>
+  </a>
+  <a href="URL_DRIVE_PDF_PLACAS" target="_blank" rel="noopener" class="doc-btn doc-btn-pdf">
+    <span class="btn-icon">📋</span>
+    <span class="btn-text">Cartilla de Despiece PDF<span>Abrir en Google Drive ↗</span></span>
+  </a>
+  <span class="doc-bar-note">💡 Se abre en pestaña nueva · ciérrela para volver al dashboard</span>
+</div>
+
+<main>
+
+  <!-- ══ KPIs ══ -->
+  <div class="sec">Indicadores Clave del Proyecto</div>
+  <div class="kpi-grid">
+    <div class="kpi r">
+      <div class="lbl">Concreto 280 kg/cm²</div>
+      <div class="val">240,79</div>
+      <div class="unit">m³ (inc. 5% desperdicio)</div>
+      <div class="sub">Pisos 1–4 · Neto 229,32 m³</div>
+    </div>
+    <div class="kpi o">
+      <div class="lbl">Concreto 245 kg/cm²</div>
+      <div class="val">163,93</div>
+      <div class="unit">m³ (inc. 5% desperdicio)</div>
+      <div class="sub">Pisos 5–7 · Neto 156,12 m³</div>
+    </div>
+    <div class="kpi b">
+      <div class="lbl">Concreto 210 kg/cm²</div>
+      <div class="val">275,06</div>
+      <div class="unit">m³ (inc. 5% desperdicio)</div>
+      <div class="sub">Pisos 8–12 + Cub. · Neto 261,96 m³</div>
+    </div>
+    <div class="kpi g">
+      <div class="lbl">Volumen Total (c/desp.)</div>
+      <div class="val">679,77</div>
+      <div class="unit">m³ concreto estructural</div>
+      <div class="sub">Neto total: 647,40 m³</div>
+    </div>
+    <div class="kpi p">
+      <div class="lbl">Acero de Refuerzo</div>
+      <div class="val">54.590</div>
+      <div class="unit">kg (inc. 2% desperdicio)</div>
+      <div class="sub">Neto: 53.520 kg · Ítem 2.1</div>
+    </div>
+    <div class="kpi">
+      <div class="lbl">Área Total de Placas</div>
+      <div class="val">5.395</div>
+      <div class="unit">m² · 13 niveles</div>
+      <div class="sub">Piso mayor: 535 m² (P2)</div>
+    </div>
+  </div>
+
+  <!-- ══ GRÁFICOS FILA 1 ══ -->
+  <div class="sec">Análisis Visual</div>
+  <div class="row-2">
+    <div class="card">
+      <h4><span class="dot" style="background:var(--teal)"></span>Área de Losa por Nivel (m²)</h4>
+      <canvas id="cArea"></canvas>
+    </div>
+    <div class="card">
+      <h4><span class="dot" style="background:var(--c280)"></span>Volumen de Concreto por Nivel (m³)</h4>
+      <canvas id="cVol"></canvas>
+    </div>
+  </div>
+
+  <!-- ══ GRÁFICOS FILA 2 ══ -->
+  <div style="margin-top:16px" class="row-3">
+    <div class="card">
+      <h4><span class="dot" style="background:var(--purple)"></span>Distribución de Volumen por Clase de Concreto</h4>
+      <canvas id="cDonut" style="max-height:240px"></canvas>
+    </div>
+    <div class="card">
+      <h4><span class="dot" style="background:var(--green)"></span>Participación de Área por Clase (%)</h4>
+      <div style="margin-top:4px">
+        <div class="pb">
+          <div class="pb-hdr"><span style="color:var(--c280)">280 kg/cm² (Pisos 1–4)</span><span>1.911 m² · 35,4%</span></div>
+          <div class="pb-bg"><div class="pb-fill" style="width:35.4%;background:var(--c280)"></div></div>
+        </div>
+        <div class="pb">
+          <div class="pb-hdr"><span style="color:var(--c245)">245 kg/cm² (Pisos 5–7)</span><span>1.301 m² · 24,1%</span></div>
+          <div class="pb-bg"><div class="pb-fill" style="width:24.1%;background:var(--c245)"></div></div>
+        </div>
+        <div class="pb">
+          <div class="pb-hdr"><span style="color:var(--c210)">210 kg/cm² (P8–Cub.)</span><span>2.183 m² · 40,5%</span></div>
+          <div class="pb-bg"><div class="pb-fill" style="width:40.5%;background:var(--c210)"></div></div>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--border);margin:12px 0">
+        <div class="pb">
+          <div class="pb-hdr"><span>280 kg/cm² vol. neto</span><span>229,32 m³ · 35,4%</span></div>
+          <div class="pb-bg"><div class="pb-fill" style="width:35.4%;background:var(--c280)"></div></div>
+        </div>
+        <div class="pb">
+          <div class="pb-hdr"><span>245 kg/cm² vol. neto</span><span>156,12 m³ · 24,1%</span></div>
+          <div class="pb-bg"><div class="pb-fill" style="width:24.1%;background:var(--c245)"></div></div>
+        </div>
+        <div class="pb">
+          <div class="pb-hdr"><span>210 kg/cm² vol. neto</span><span>261,96 m³ · 40,5%</span></div>
+          <div class="pb-bg"><div class="pb-fill" style="width:40.5%;background:var(--c210)"></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h4><span class="dot" style="background:var(--c210)"></span>Volumen Acero por Grupo de Pisos (kg)</h4>
+      <canvas id="cAcero" style="max-height:240px"></canvas>
+    </div>
+  </div>
+
+  <!-- ══ DIAGRAMA TORRE ══ -->
+  <div class="sec">Perfil de la Torre — Área por Nivel</div>
+  <div class="card">
+    <h4>🏗️ Distribución de Área de Losa a lo largo de la Torre (referencia visual)</h4>
+    <div class="legend" style="margin-top:4px">
+      <div class="legend-item"><div class="legend-sq" style="background:var(--c280)"></div>280 kg/cm² — Pisos 1–4</div>
+      <div class="legend-item"><div class="legend-sq" style="background:var(--c245)"></div>245 kg/cm² — Pisos 5–7</div>
+      <div class="legend-item"><div class="legend-sq" style="background:var(--c210)"></div>210 kg/cm² — Pisos 8–12 + Cubierta</div>
+    </div>
+    <div class="building-wrap">
+      <!-- Cubierta at top -->
+      <div class="floor-row">
+        <div class="floor-label">CUBIERTA</div>
+        <div class="floor-bar-bg">
+          <div class="floor-bar-fill bg-210" style="width:37.4%">200 m²</div>
+        </div>
+        <div class="floor-meta">Vol: <strong>24,00 m³</strong></div>
+      </div>
+      <div class="floor-row">
+        <div class="floor-label">PISO 12</div>
+        <div class="floor-bar-bg">
+          <div class="floor-bar-fill bg-210" style="width:64.5%">345 m²</div>
+        </div>
+        <div class="floor-meta">Vol: <strong>41,40 m³</strong></div>
+      </div>
+      <div class="floor-row">
+        <div class="floor-label">PISO 11</div>
+        <div class="floor-bar-bg">
+          <div class="floor-bar-fill bg-210" style="width:64.5%">345 m²</div>
+        </div>
+        <div class="floor-meta">Vol: <strong>41,40 m³</strong></div>
+      </div>
+      <div class="floor-row">
+        <div class="floor-label">PISO 10</div>
+        <div class="floor-bar-bg">
+          <div class="floor-bar-fill bg-210" style="width:80.6%">431 m²</div>
+        </div>
+        <div class="floor-meta">Vol: <strong>51,72 m³</strong></div>
+      </div>
+      <div class="floor-row">
+        <div class="floor-label">PISO 9</div>
+        <div class="floor-bar-bg">
+          <div class="floor-bar-fill bg-210" style="width:80.6%">431 m²</div>
+        </div>
+        <div class="floor-meta">Vol: <strong>51,72 m³</strong></div>
+      </div>
+      <div class="floor-row">
+        <div class="floor-label">PISO 8</div>
+        <div class="floor-bar-bg">
+          <div class="floor-bar-fill bg-210" style="width:80.6%">431 m²</div>
+        </div>
+        <div class="floor-meta">Vol: <strong>51,72 m³</strong></div>
+      </div>
+      <div class="floor-row">
+        <div class="floor-label">PISO 7</div>
+        <div class="floor-bar-bg">
+          <div class="floor-bar-fill bg-245" style="width:80.6%">431 m²</div>
+        </div>
+        <div class="floor-meta">Vol: <strong>51,72 m³</strong></div>
+      </div>
+      <div class="floor-row">
+        <div class="floor-label">PISO 6</div>
+        <div class="floor-bar-bg">
+          <div class="floor-bar-fill bg-245" style="width:83.8%">448 m²</div>
+        </div>
+        <div class="floor-meta">Vol: <strong>53,76 m³</strong></div>
+      </div>
+      <div class="floor-row">
+        <div class="floor-label">PISO 5</div>
+        <div class="floor-bar-bg">
+          <div class="floor-bar-fill bg-245" style="width:78.9%">422 m²</div>
+        </div>
+        <div class="floor-meta">Vol: <strong>50,64 m³</strong></div>
+      </div>
+      <div class="floor-row">
+        <div class="floor-label">PISO 4</div>
+        <div class="floor-bar-bg">
+          <div class="floor-bar-fill bg-280" style="width:78.9%">422 m²</div>
+        </div>
+        <div class="floor-meta">Vol: <strong>50,64 m³</strong></div>
+      </div>
+      <div class="floor-row">
+        <div class="floor-label">PISO 3</div>
+        <div class="floor-bar-bg">
+          <div class="floor-bar-fill bg-280" style="width:92%">492 m²</div>
+        </div>
+        <div class="floor-meta">Vol: <strong>59,04 m³</strong></div>
+      </div>
+      <div class="floor-row">
+        <div class="floor-label">PISO 2</div>
+        <div class="floor-bar-bg">
+          <div class="floor-bar-fill bg-280" style="width:100%">535 m² ← MÁXIMO</div>
+        </div>
+        <div class="floor-meta">Vol: <strong>64,20 m³</strong></div>
+      </div>
+      <div class="floor-row">
+        <div class="floor-label">PISO 1 (CP)</div>
+        <div class="floor-bar-bg">
+          <div class="floor-bar-fill bg-280" style="width:86.4%">462 m² — Contrapiso</div>
+        </div>
+        <div class="floor-meta">Vol: <strong>55,44 m³</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TABLA DETALLE ══ -->
+  <div class="sec">Tabla de Cómputo — Detalle por Nivel</div>
+  <div class="card">
+    <h4>📋 Ítem 3.2 · Concreto de Placa Torre · Todos los Niveles</h4>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Elemento</th>
+            <th>Nivel / Piso</th>
+            <th>Cant. Elem.</th>
+            <th>Área (m²)</th>
+            <th>Esp. Losa (m)</th>
+            <th>Esp. Viga (m)</th>
+            <th>Descuento Ref.</th>
+            <th>Clase Concreto</th>
+            <th>Volumen Neto (m³)</th>
+            <th>Vol. + 5% (m³)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td class="left">Placa Contrapiso</td>
+            <td><strong>PISO 1</strong></td>
+            <td>1</td>
+            <td>462</td>
+            <td>0,12</td>
+            <td>0,15</td>
+            <td>Pared</td>
+            <td><span class="badge-cp">Contrapiso</span></td>
+            <td class="vol-hi">55,44</td>
+            <td class="vol-hi">58,21</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td class="left">Placa Entrepiso</td>
+            <td><strong>PISO 2</strong></td>
+            <td>1</td>
+            <td>535</td>
+            <td>0,12</td>
+            <td>0,15</td>
+            <td>VI-09</td>
+            <td><span class="badge-280">280 kg/cm²</span></td>
+            <td class="vol-hi">64,20</td>
+            <td class="vol-hi">67,41</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td class="left">Placa Entrepiso</td>
+            <td><strong>PISO 3</strong></td>
+            <td>1</td>
+            <td>492</td>
+            <td>0,12</td>
+            <td>0,15</td>
+            <td>VI-08</td>
+            <td><span class="badge-280">280 kg/cm²</span></td>
+            <td class="vol-hi">59,04</td>
+            <td class="vol-hi">61,99</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td class="left">Placa Entrepiso</td>
+            <td><strong>PISO 4</strong></td>
+            <td>1</td>
+            <td>422</td>
+            <td>0,12</td>
+            <td>0,18</td>
+            <td>VI-09</td>
+            <td><span class="badge-280">280 kg/cm²</span></td>
+            <td class="vol-md">50,64</td>
+            <td class="vol-md">53,17</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td class="left">Placa Entrepiso</td>
+            <td><strong>PISO 5</strong></td>
+            <td>1</td>
+            <td>422</td>
+            <td>0,12</td>
+            <td>0,15</td>
+            <td>P-01</td>
+            <td><span class="badge-245">245 kg/cm²</span></td>
+            <td class="vol-md">50,64</td>
+            <td class="vol-md">53,17</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td class="left">Placa Entrepiso</td>
+            <td><strong>PISO 6</strong></td>
+            <td>1</td>
+            <td>448</td>
+            <td>0,12</td>
+            <td>0,15</td>
+            <td>Pared</td>
+            <td><span class="badge-245">245 kg/cm²</span></td>
+            <td class="vol-md">53,76</td>
+            <td class="vol-md">56,45</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td class="left">Placa Entrepiso</td>
+            <td><strong>PISO 7</strong></td>
+            <td>1</td>
+            <td>431</td>
+            <td>0,12</td>
+            <td>0,15</td>
+            <td>Pared</td>
+            <td><span class="badge-245">245 kg/cm²</span></td>
+            <td class="vol-md">51,72</td>
+            <td class="vol-md">54,31</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td class="left">Placa Entrepiso</td>
+            <td><strong>PISO 8</strong></td>
+            <td>1</td>
+            <td>431</td>
+            <td>0,12</td>
+            <td>0,15</td>
+            <td>Pared</td>
+            <td><span class="badge-210">210 kg/cm²</span></td>
+            <td class="vol-md">51,72</td>
+            <td class="vol-md">54,31</td>
+          </tr>
+          <tr>
+            <td>9</td>
+            <td class="left">Placa Entrepiso</td>
+            <td><strong>PISO 9</strong></td>
+            <td>1</td>
+            <td>431</td>
+            <td>0,12</td>
+            <td>0,15</td>
+            <td>Pared</td>
+            <td><span class="badge-210">210 kg/cm²</span></td>
+            <td class="vol-md">51,72</td>
+            <td class="vol-md">54,31</td>
+          </tr>
+          <tr>
+            <td>10</td>
+            <td class="left">Placa Entrepiso</td>
+            <td><strong>PISO 10</strong></td>
+            <td>1</td>
+            <td>431</td>
+            <td>0,12</td>
+            <td>0,15</td>
+            <td>Pared</td>
+            <td><span class="badge-210">210 kg/cm²</span></td>
+            <td class="vol-md">51,72</td>
+            <td class="vol-md">54,31</td>
+          </tr>
+          <tr>
+            <td>11</td>
+            <td class="left">Placa Entrepiso</td>
+            <td><strong>PISO 11</strong></td>
+            <td>1</td>
+            <td>345</td>
+            <td>0,12</td>
+            <td>0,15</td>
+            <td>Pared</td>
+            <td><span class="badge-210">210 kg/cm²</span></td>
+            <td class="vol-lo">41,40</td>
+            <td class="vol-lo">43,47</td>
+          </tr>
+          <tr>
+            <td>12</td>
+            <td class="left">Placa Entrepiso</td>
+            <td><strong>PISO 12</strong></td>
+            <td>1</td>
+            <td>345</td>
+            <td>0,12</td>
+            <td>0,15</td>
+            <td>Pared</td>
+            <td><span class="badge-210">210 kg/cm²</span></td>
+            <td class="vol-lo">41,40</td>
+            <td class="vol-lo">43,47</td>
+          </tr>
+          <tr>
+            <td>13</td>
+            <td class="left">Placa Entrepiso</td>
+            <td><strong>CUBIERTA</strong></td>
+            <td>1</td>
+            <td>200</td>
+            <td>0,12</td>
+            <td>0,15</td>
+            <td>Pared</td>
+            <td><span class="badge-210">210 kg/cm²</span></td>
+            <td class="vol-lo">24,00</td>
+            <td class="vol-lo">25,20</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="4"><strong>TOTAL GENERAL</strong></td>
+            <td><strong>5.395 m²</strong></td>
+            <td colspan="4"></td>
+            <td><strong>647,40 m³</strong></td>
+            <td><strong>679,77 m³</strong></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ RESUMEN MATERIALES ══ -->
+  <div class="sec">Resumen de Materiales</div>
+  <div class="row-2">
+
+    <div class="card">
+      <h4>🧱 Concreto Estructural — Resumen por Clase</h4>
+      <table class="sum-table">
+        <thead>
+          <tr><th>Clase</th><th>Niveles</th><th>Área (m²)</th><th>Vol. Neto (m³)</th><th>+ 5% (m³)</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge-280">280 kg/cm²</span></td>
+            <td>Pisos 1–4</td>
+            <td>1.911</td>
+            <td>229,32</td>
+            <td>240,79</td>
+          </tr>
+          <tr>
+            <td><span class="badge-245">245 kg/cm²</span></td>
+            <td>Pisos 5–7</td>
+            <td>1.301</td>
+            <td>156,12</td>
+            <td>163,93</td>
+          </tr>
+          <tr>
+            <td><span class="badge-210">210 kg/cm²</span></td>
+            <td>Pisos 8–12 + Cub.</td>
+            <td>2.183</td>
+            <td>261,96</td>
+            <td>275,06</td>
+          </tr>
+          <tr class="hi"><td colspan="2"><strong>TOTAL</strong></td><td><strong>5.395</strong></td><td><strong>647,40</strong></td><td><strong>679,77</strong></td></tr>
+        </tbody>
+      </table>
+      <div class="note">📐 <strong>Espesor de losa:</strong> 0,12 m uniforme · <strong>Sección con viga:</strong> 0,15 m / 0,18 m (P4) · <strong>Ítem:</strong> 3.2 Concreto de placa Torre</div>
+    </div>
+
+    <div class="card">
+      <h4>⚙️ Acero de Refuerzo — Fy = 420 MPa (60.000 PSI) · Corrugado</h4>
+      <table class="sum-table">
+        <thead>
+          <tr><th>Tramo / Grupo</th><th>Longitud (m)</th><th>kg/ml</th><th>Total (kg)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Contrapiso (Piso 1)</td><td>5.000</td><td>1,00</td><td>5.000,00</td></tr>
+          <tr><td>Longitudinal Pisos 1–3</td><td>5.223</td><td>2,00</td><td>10.446,00</td></tr>
+          <tr><td>Pisos 4–10</td><td>4.206</td><td>7,00</td><td>29.442,00</td></tr>
+          <tr><td>Pisos 11–12</td><td>3.110</td><td>2,00</td><td>6.220,00</td></tr>
+          <tr><td>Cubierta</td><td>2.412</td><td>1,00</td><td>2.412,00</td></tr>
+          <tr class="hi"><td colspan="3"><strong>SUBTOTAL ACERO</strong></td><td><strong>53.520,00 kg</strong></td></tr>
+          <tr class="hi2"><td colspan="3"><strong>+ Desperdicio 2% → TOTAL</strong></td><td><strong>54.590,40 kg</strong></td></tr>
+        </tbody>
+      </table>
+      <div class="note">ℹ️ El acero de refuerzo figura en el <strong>Ítem 2.1</strong> y se cotiza de forma independiente a los ítems de concreto de placa.</div>
+    </div>
+
+  </div>
+
+</main>
+
+<footer>
+  Dashboard Gerencial · Placas de Entrepiso y Contrapiso · Torre Santa Isabel · Concreto 280/245/210 kg/cm² · Datos: PLACAS DE ENTREPISO TORRE SANTA ISABLE.xlsx
+</footer>
+
+<!-- ══════ SCRIPTS CHARTS ══════ -->
+<script>
+  const floors  = ['P1 (CP)','P2','P3','P4','P5','P6','P7','P8','P9','P10','P11','P12','Cubierta'];
+  const areas   = [462,535,492,422,422,448,431,431,431,431,345,345,200];
+  const vols    = [55.44,64.20,59.04,50.64,50.64,53.76,51.72,51.72,51.72,51.72,41.40,41.40,24.00];
+  const classes = ['#c0392b','#c0392b','#c0392b','#c0392b','#e67e22','#e67e22','#e67e22','#2980b9','#2980b9','#2980b9','#2980b9','#2980b9','#2980b9'];
+
+  // 1) Area per floor
+  new Chart(document.getElementById('cArea'), {
+    type: 'bar',
+    data: {
+      labels: floors,
+      datasets: [{
+        label: 'Área (m²)',
+        data: areas,
+        backgroundColor: classes,
+        borderRadius: 5, borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y} m²` } }
+      },
+      scales: {
+        y: { beginAtZero: false, min: 150, grid: { color: '#eee' }, title: { display: true, text: 'm²', font:{size:11} } },
+        x: { grid: { display: false }, ticks: { font:{size:10} } }
+      }
+    }
+  });
+
+  // 2) Volume per floor
+  new Chart(document.getElementById('cVol'), {
+    type: 'bar',
+    data: {
+      labels: floors,
+      datasets: [{
+        label: 'Volumen (m³)',
+        data: vols,
+        backgroundColor: classes,
+        borderRadius: 5, borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y} m³` } }
+      },
+      scales: {
+        y: { beginAtZero: false, min:20, grid: { color: '#eee' }, title: { display: true, text: 'm³', font:{size:11} } },
+        x: { grid: { display: false }, ticks: { font:{size:10} } }
+      }
+    }
+  });
+
+  // 3) Donut vol by class
+  new Chart(document.getElementById('cDonut'), {
+    type: 'doughnut',
+    data: {
+      labels: ['280 kg/cm² — 229,32 m³','245 kg/cm² — 156,12 m³','210 kg/cm² — 261,96 m³'],
+      datasets: [{
+        data: [229.32, 156.12, 261.96],
+        backgroundColor: ['#c0392b','#e67e22','#2980b9'],
+        hoverOffset: 8, borderWidth: 3, borderColor: '#fff'
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { font:{size:10.5}, boxWidth:12, padding:10 } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label.split('—')[0].trim()} · ${((ctx.parsed/647.4)*100).toFixed(1)}%` } }
+      },
+      cutout: '60%'
+    }
+  });
+
+  // 4) Steel by group
+  new Chart(document.getElementById('cAcero'), {
+    type: 'bar',
+    data: {
+      labels: ['Contrapiso P1','Long. P1–3','Pisos 4–10','Pisos 11–12','Cubierta'],
+      datasets: [{
+        label: 'kg de Acero',
+        data: [5000, 10446, 29442, 6220, 2412],
+        backgroundColor: ['#148f77','#1a6fa3','#6c3483','#ca6f1e','#c0392b'],
+        borderRadius: 5, borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y.toLocaleString('es')} kg (${((ctx.parsed.y/53520)*100).toFixed(1)}%)` } }
+      },
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#eee' }, title: { display: true, text: 'kg', font:{size:11} } },
+        x: { grid: { display: false }, ticks: { font:{size:10} } }
+      }
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard – Vigas de Cimentación | Concreto 28 MPa</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --primary:  #1b3d6e;
+      --primary2: #2a5298;
+      --accent:   #e67e22;
+      --green:    #27ae60;
+      --blue:     #2980b9;
+      --purple:   #8e44ad;
+      --red:      #c0392b;
+      --teal:     #16a085;
+      --light:    #f0f3f8;
+      --card:     #ffffff;
+      --text:     #2c3e50;
+      --muted:    #7f8c8d;
+      --border:   #dce3ea;
+      --shadow:   0 4px 18px rgba(27,61,110,.10);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--light); color: var(--text); font-size: 14px; }
+
+    /* ── HEADER ── */
+    header { background: linear-gradient(140deg,#0f2035 0%,#1b3d6e 55%,#2a5298 100%); color:#fff; padding:0; }
+    .hdr-top { display:flex;align-items:stretch;padding:22px 40px 18px;gap:20px;border-bottom:1px solid rgba(255,255,255,.12); }
+    .hdr-icon { font-size:52px;line-height:1;align-self:center;flex-shrink:0; }
+    .hdr-text { flex:1; }
+    .hdr-text h1 { font-size:21px;font-weight:800;letter-spacing:.3px; }
+    .hdr-text p  { margin-top:5px;font-size:12.5px;opacity:.80;line-height:1.5; }
+    .hdr-chips { display:flex;gap:8px;margin-top:10px;flex-wrap:wrap; }
+    .chip { display:inline-flex;align-items:center;gap:5px;padding:4px 13px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase; }
+    .chip-x    { background:#27ae60;color:#fff; }
+    .chip-y    { background:#2980b9;color:#fff; }
+    .chip-sec  { background:#8e44ad;color:#fff; }
+    .chip-info { background:rgba(255,255,255,.18);color:#fff; }
+    .hdr-stats { display:flex;gap:0;background:rgba(0,0,0,.20); }
+    .hdr-stat  { flex:1;padding:9px 0;text-align:center;border-right:1px solid rgba(255,255,255,.10); }
+    .hdr-stat:last-child { border-right:none; }
+    .hdr-stat .v { font-size:18px;font-weight:800;color:#fff; }
+    .hdr-stat .l { font-size:10px;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.4px;margin-top:1px; }
+
+    /* ── LAYOUT ── */
+    main { padding: 28px 40px; max-width: 1440px; margin: auto; }
+
+    /* ── SECTION TITLE ── */
+    .sec-title {
+      font-size: 14px; font-weight: 700; color: var(--primary);
+      text-transform: uppercase; letter-spacing: 1px;
+      margin: 0 0 14px; padding-left: 10px;
+      border-left: 4px solid var(--accent);
+    }
+
+    /* ── KPI GRID ── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 16px; margin-bottom: 32px;
+    }
+    .kpi { background: var(--card); border-radius: 12px; padding: 20px 22px; box-shadow: var(--shadow); border-top: 4px solid var(--primary); }
+    .kpi.orange { border-top-color: var(--accent); }
+    .kpi.green  { border-top-color: var(--green); }
+    .kpi.blue   { border-top-color: var(--blue); }
+    .kpi.purple { border-top-color: var(--purple); }
+    .kpi.teal   { border-top-color: var(--teal); }
+    .kpi-lbl  { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
+    .kpi-val  { font-size: 30px; font-weight: 700; color: var(--primary); line-height: 1.1; margin: 4px 0 2px; }
+    .kpi-unit { font-size: 12px; color: var(--muted); }
+    .kpi-sub  { font-size: 11px; color: var(--green); margin-top: 5px; font-weight: 600; }
+
+    /* ── CHART GRID ── */
+    .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 32px; }
+    .chart-card { background: var(--card); border-radius: 12px; padding: 22px; box-shadow: var(--shadow); }
+    .chart-card.full { grid-column: 1 / -1; }
+    .chart-card h3 {
+      font-size: 13px; font-weight: 700; color: var(--primary);
+      margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; background: var(--accent); }
+    canvas { max-height: 300px; }
+
+    /* ── DIRECTION CARDS ── */
+    .dir-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 32px; }
+    .dir-card { background: var(--card); border-radius: 12px; padding: 20px 22px; box-shadow: var(--shadow); }
+    .dir-card h3 { font-size: 13px; font-weight: 700; color: var(--primary); margin-bottom: 6px; }
+    .dir-meta { display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 14px; }
+    .dir-stat { text-align: center; }
+    .dir-stat .v { font-size: 20px; font-weight: 700; color: var(--primary); }
+    .dir-stat .l { font-size: 11px; color: var(--muted); }
+    .dir-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; margin-bottom: 14px; }
+    .dir-badge.x { background: #d5e8d4; color: #27ae60; }
+    .dir-badge.y { background: #dae8fc; color: #2980b9; }
+
+    /* ── PROGRESS BAR ── */
+    .pb-wrap { margin-bottom: 8px; }
+    .pb-hdr  { display: flex; justify-content: space-between; font-size: 11px; font-weight: 600; margin-bottom: 3px; }
+    .pb-bg   { background: var(--border); border-radius: 20px; height: 9px; overflow: hidden; }
+    .pb-fill { height: 100%; border-radius: 20px; }
+
+    /* ── TABLES ── */
+    .tbl-card { background: var(--card); border-radius: 12px; box-shadow: var(--shadow); padding: 22px; margin-bottom: 28px; overflow-x: auto; }
+    .tbl-card h3 { font-size: 13px; font-weight: 700; color: var(--primary); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead tr { background: var(--primary); color: #fff; }
+    thead th { padding: 10px 12px; text-align: center; font-size: 12px; font-weight: 600; white-space: nowrap; }
+    tbody tr:nth-child(even) { background: #f9fafc; }
+    tbody tr:hover { background: #eaf2fb; }
+    tbody td { padding: 8px 12px; text-align: center; border-bottom: 1px solid var(--border); }
+    td.ub { text-align: left; font-weight: 600; color: var(--primary); white-space: nowrap; }
+    tfoot tr { background: var(--primary); color: #fff; }
+    tfoot td { padding: 10px 12px; font-weight: 700; font-size: 13px; text-align: center; border: none; }
+    .tag { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .tag-x { background: #d5e8d4; color: #1e8449; }
+    .tag-y { background: #dae8fc; color: #1a5276; }
+    .vol-hi { color: #1e8449; font-weight: 700; }
+    .vol-md { color: #2980b9; font-weight: 600; }
+    .vol-lo { color: var(--muted); }
+    .desc-pill { background: #fff2cc; color: #9a7d0a; font-size: 11px; padding: 2px 8px; border-radius: 20px; display: inline-block; }
+
+    /* ── SUMMARY ── */
+    .sum-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 32px; }
+    .sum-card { background: var(--card); border-radius: 12px; padding: 22px; box-shadow: var(--shadow); }
+    .sum-card h3 { font-size: 13px; font-weight: 700; color: var(--primary); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .sum-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .sum-table th { background: #f4f6f9; color: var(--primary); padding: 8px 12px; text-align: left; font-size: 12px; font-weight: 700; border-bottom: 2px solid var(--border); }
+    .sum-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+    .sum-table tr.hi td { background: #eaf2fb; font-weight: 700; color: var(--primary); }
+    .note-box { margin-top: 14px; padding: 11px 14px; background: #eaf2fb; border-radius: 8px; font-size: 12px; color: var(--primary); }
+
+    footer { text-align: center; color: var(--muted); font-size: 11px; padding: 20px; border-top: 1px solid var(--border); }
+
+    @media (max-width: 900px) {
+      .chart-grid, .dir-grid, .sum-grid { grid-template-columns: 1fr; }
+      main { padding: 16px; }
+      header { padding: 18px 16px; }
+    }
+  
+    /* ── BARRA DOCUMENTOS ── */
+    .doc-bar {
+      background:#fff;
+      border-bottom:2px solid #dce3ea;
+      padding:10px 40px;
+      display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    }
+    .doc-bar-label {
+      font-size:10.5px;font-weight:800;text-transform:uppercase;
+      letter-spacing:.8px;color:#7f8c8d;margin-right:4px;white-space:nowrap;
+    }
+    .doc-btn {
+      display:inline-flex;align-items:center;gap:8px;
+      padding:7px 16px;border-radius:8px;font-size:12px;font-weight:700;
+      text-decoration:none;transition:all .18s ease;
+      border:2px solid transparent;white-space:nowrap;
+    }
+    .doc-btn:hover { transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.15); }
+    .doc-btn .btn-icon { font-size:16px;line-height:1; }
+    .doc-btn .btn-text { display:flex;flex-direction:column;line-height:1.2; }
+    .doc-btn .btn-text span { font-size:9.5px;font-weight:500;opacity:.75;margin-top:1px; }
+    .doc-btn-plan  { background:#eaf2fb;color:#1a5276;border-color:#aed6f1; }
+    .doc-btn-plan:hover  { background:#1a5276;color:#fff; }
+    .doc-btn-excel { background:#e9f7ef;color:#1e8449;border-color:#a9dfbf; }
+    .doc-btn-excel:hover { background:#1e8449;color:#fff; }
+    .doc-btn-pdf   { background:#fdedec;color:#922b21;border-color:#f1948a; }
+    .doc-btn-pdf:hover   { background:#922b21;color:#fff; }
+    .doc-bar-note  { margin-left:auto;font-size:10.5px;color:#95a5a6;font-style:italic; }
+
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-top">
+    <div class="hdr-icon">🏛️</div>
+    <div class="hdr-text">
+      <h1>Vigas de Cimentación — Torre Santa Isabel</h1>
+      <p>Concreto <strong>28 MPa (280 kg/cm²)</strong> · Sección uniforme <strong>0,40 × 0,60 m</strong> · Ejes sentido X e Y<br>
+         El acero de refuerzo se paga en su respectivo ítem · Ref. Plano 001 Planta de Cimentación</p>
+      <div class="hdr-chips">
+        <span class="chip chip-x">↔ Dir. X — 18 Vigas</span>
+        <span class="chip chip-y">↕ Dir. Y — 23 Vigas</span>
+        <span class="chip chip-sec">Sección 0,40 × 0,60 m</span>
+        <span class="chip chip-info">📊 Informe Gerencial</span>
+      </div>
+    </div>
+  </div>
+  <div class="hdr-stats">
+    <div class="hdr-stat"><div class="v">41</div><div class="l">Total Vigas</div></div>
+    <div class="hdr-stat"><div class="v">395,85</div><div class="l">m Longitud Total</div></div>
+    <div class="hdr-stat"><div class="v">94,49</div><div class="l">m³ Concreto (+5%)</div></div>
+    <div class="hdr-stat"><div class="v">9.812</div><div class="l">kg Acero (+2%)</div></div>
+    <div class="hdr-stat"><div class="v">89,99</div><div class="l">m³ Vol. Neto</div></div>
+    <div class="hdr-stat"><div class="v">18</div><div class="l">Vigas Dir. X</div></div>
+    <div class="hdr-stat"><div class="v">23</div><div class="l">Vigas Dir. Y</div></div>
+    <div class="hdr-stat"><div class="v">30,90</div><div class="l">m Viga Máxima</div></div>
+  </div>
+</header>
+
+<!-- ══ BARRA DE DOCUMENTOS ══
+     INSTRUCCIONES: Reemplace cada URL_DRIVE_... con el enlace de Google Drive correspondiente.
+     Para obtener el link: en Drive → clic derecho al archivo → "Obtener enlace" → "Cualquier persona con el enlace".
+-->
+<div class="doc-bar">
+  <span class="doc-bar-label">📁 Documentos — Vigas:</span>
+  <a href="URL_DRIVE_PLANO_VIGAS" target="_blank" rel="noopener" class="doc-btn doc-btn-plan">
+    <span class="btn-icon">📐</span>
+    <span class="btn-text">Planos de Referencia<span>Abrir en Google Drive ↗</span></span>
+  </a>
+  <a href="URL_DRIVE_EXCEL_VIGAS" target="_blank" rel="noopener" class="doc-btn doc-btn-excel">
+    <span class="btn-icon">📊</span>
+    <span class="btn-text">Cantidades en Excel<span>Abrir en Google Drive ↗</span></span>
+  </a>
+  <a href="URL_DRIVE_PDF_VIGAS" target="_blank" rel="noopener" class="doc-btn doc-btn-pdf">
+    <span class="btn-icon">📋</span>
+    <span class="btn-text">Cartilla de Despiece PDF<span>Abrir en Google Drive ↗</span></span>
+  </a>
+  <span class="doc-bar-note">💡 Se abre en pestaña nueva · ciérrela para volver al dashboard</span>
+</div>
+
+<main>
+
+  <!-- ── KPIs ── -->
+  <div class="sec-title">Indicadores Clave del Proyecto</div>
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="kpi-lbl">Total Vigas</div>
+      <div class="kpi-val">41</div>
+      <div class="kpi-unit">Elementos de cimentación</div>
+      <div class="kpi-sub">18 Dir. X · 23 Dir. Y</div>
+    </div>
+    <div class="kpi orange">
+      <div class="kpi-lbl">Longitud Total</div>
+      <div class="kpi-val">395,85</div>
+      <div class="kpi-unit">metros lineales</div>
+      <div class="kpi-sub">X: 197,05 m · Y: 198,80 m</div>
+    </div>
+    <div class="kpi green">
+      <div class="kpi-lbl">Volumen Concreto</div>
+      <div class="kpi-val">94,49</div>
+      <div class="kpi-unit">m³ (inc. 5% desperdicio)</div>
+      <div class="kpi-sub">Neto: 89,99 m³</div>
+    </div>
+    <div class="kpi blue">
+      <div class="kpi-lbl">Acero Refuerzo</div>
+      <div class="kpi-val">9.812</div>
+      <div class="kpi-unit">kg (inc. 2% desperdicio)</div>
+      <div class="kpi-sub">Neto: 9.619,65 kg</div>
+    </div>
+    <div class="kpi purple">
+      <div class="kpi-lbl">Sección Transversal</div>
+      <div class="kpi-val">0,24</div>
+      <div class="kpi-unit">m² (0.40 × 0.60 m) — uniforme</div>
+      <div class="kpi-sub">Concreto 280 kg/cm²</div>
+    </div>
+    <div class="kpi teal">
+      <div class="kpi-lbl">Viga más larga</div>
+      <div class="kpi-val">30,90</div>
+      <div class="kpi-unit">m — EJE B, C, K, L (Dir. X)</div>
+      <div class="kpi-sub">Vol. unitario: 7,42 m³ c/u</div>
+    </div>
+  </div>
+
+  <!-- ── CHARTS ── -->
+  <div class="sec-title">Análisis Visual</div>
+  <div class="chart-grid">
+
+    <div class="chart-card">
+      <h3><span class="dot"></span>Volumen de Concreto: Dir. X vs Dir. Y</h3>
+      <canvas id="cDirComp"></canvas>
+    </div>
+
+    <div class="chart-card">
+      <h3><span class="dot" style="background:var(--green)"></span>Distribución de Volumen por Sentido (m³)</h3>
+      <canvas id="cDoughnut"></canvas>
+    </div>
+
+    <div class="chart-card full">
+      <h3><span class="dot" style="background:var(--blue)"></span>Volumen por Viga (m³) — Todas las Vigas ordenadas</h3>
+      <canvas id="cAllVigas" style="max-height:360px"></canvas>
+    </div>
+
+    <div class="chart-card">
+      <h3><span class="dot" style="background:var(--purple)"></span>Longitudes Vigas Dirección X (m)</h3>
+      <canvas id="cLongX"></canvas>
+    </div>
+
+    <div class="chart-card">
+      <h3><span class="dot" style="background:var(--teal)"></span>Longitudes Vigas Dirección Y (m)</h3>
+      <canvas id="cLongY"></canvas>
+    </div>
+
+  </div>
+
+  <!-- ── DIRECTION SUMMARY ── -->
+  <div class="sec-title">Resumen por Dirección</div>
+  <div class="dir-grid">
+    <div class="dir-card">
+      <div class="dir-badge x">↔ Dirección X — Vigas Horizontales</div>
+      <div class="dir-meta">
+        <div class="dir-stat"><div class="v">18</div><div class="l">Elementos</div></div>
+        <div class="dir-stat"><div class="v">197,05</div><div class="l">m lineales</div></div>
+        <div class="dir-stat"><div class="v">47,32</div><div class="l">m³ neto</div></div>
+        <div class="dir-stat"><div class="v">52,6%</div><div class="l">del volumen total</div></div>
+      </div>
+      <div class="pb-wrap"><div class="pb-hdr"><span>EJE B 1-21</span><span>7,42 m³</span></div><div class="pb-bg"><div class="pb-fill" style="width:100%;background:#27ae60"></div></div></div>
+      <div class="pb-wrap"><div class="pb-hdr"><span>EJE C 1-21</span><span>7,42 m³</span></div><div class="pb-bg"><div class="pb-fill" style="width:100%;background:#27ae60"></div></div></div>
+      <div class="pb-wrap"><div class="pb-hdr"><span>EJE K 1-21</span><span>7,42 m³</span></div><div class="pb-bg"><div class="pb-fill" style="width:100%;background:#27ae60"></div></div></div>
+      <div class="pb-wrap"><div class="pb-hdr"><span>EJE L 1-21</span><span>7,42 m³</span></div><div class="pb-bg"><div class="pb-fill" style="width:100%;background:#27ae60"></div></div></div>
+      <div class="pb-wrap"><div class="pb-hdr"><span>EJE I 16-21</span><span>2,75 m³</span></div><div class="pb-bg"><div class="pb-fill" style="width:37%;background:#2980b9"></div></div></div>
+      <div class="pb-wrap"><div class="pb-hdr"><span>EJE E 16-21</span><span>2,75 m³</span></div><div class="pb-bg"><div class="pb-fill" style="width:37%;background:#2980b9"></div></div></div>
+      <div class="pb-wrap"><div class="pb-hdr"><span>EJE H 9-16</span><span>2,09 m³</span></div><div class="pb-bg"><div class="pb-fill" style="width:28%;background:#8e44ad"></div></div></div>
+      <div class="pb-wrap"><div class="pb-hdr"><span>Resto (11 vigas)</span><span>10,23 m³</span></div><div class="pb-bg"><div class="pb-fill" style="width:14%;background:#95a5a6"></div></div></div>
+    </div>
+    <div class="dir-card">
+      <div class="dir-badge y">↕ Dirección Y — Vigas Transversales</div>
+      <div class="dir-meta">
+        <div class="dir-stat"><div class="v">23</div><div class="l">Elementos</div></div>
+        <div class="dir-stat"><div class="v">198,80</div><div class="l">m lineales</div></div>
+        <div class="dir-stat"><div class="v">42,67</div><div class="l">m³ neto</div></div>
+        <div class="dir-stat"><div class="v">47,4%</div><div class="l">del volumen total</div></div>
+      </div>
+      <div class="pb-wrap"><div class="pb-hdr"><span>EJE 1 B-L</span><span>3,66 m³</span></div><div class="pb-bg"><div class="pb-fill" style="width:100%;background:#e67e22"></div></div></div>
+      <div class="pb-wrap"><div class="pb-hdr"><span>EJE 6 B-L</span><span>3,66 m³</span></div><div class="pb-bg"><div class="pb-fill" style="width:100%;background:#e67e22"></div></div></div>
+      <div class="pb-wrap"><div class="pb-hdr"><span>EJE 11 B-L</span><span>3,66 m³</span></div><div class="pb-bg"><div class="pb-fill" style="width:100%;background:#e67e22"></div></div></div>
+      <div class="pb-wrap"><div class="pb-hdr"><span>EJE 14 B-L</span><span>3,66 m³</span></div><div class="pb-bg"><div class="pb-fill" style="width:100%;background:#e67e22"></div></div></div>
+      <div class="pb-wrap"><div class="pb-hdr"><span>EJE 21 B-L</span><span>3,66 m³</span></div><div class="pb-bg"><div class="pb-fill" style="width:100%;background:#e67e22"></div></div></div>
+      <div class="pb-wrap"><div class="pb-hdr"><span>EJE 20 B-L</span><span>3,57 m³</span></div><div class="pb-bg"><div class="pb-fill" style="width:97%;background:#d68910"></div></div></div>
+      <div class="pb-wrap"><div class="pb-hdr"><span>EJE 19 B-L</span><span>3,57 m³</span></div><div class="pb-bg"><div class="pb-fill" style="width:97%;background:#d68910"></div></div></div>
+      <div class="pb-wrap"><div class="pb-hdr"><span>Resto (16 vigas)</span><span>17,23 m³</span></div><div class="pb-bg"><div class="pb-fill" style="width:47%;background:#95a5a6"></div></div></div>
+    </div>
+  </div>
+
+  <!-- ── TABLA DIRECCIÓN X ── -->
+  <div class="sec-title">Detalle de Vigas — Dirección X (Horizontales)</div>
+  <div class="tbl-card">
+    <h3>↔ 18 Vigas · Longitud Total: 197,05 m · Volumen: 47,32 m³</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Ubicación</th><th>Sentido</th>
+          <th>Longitud (m)</th><th>Ancho (m)</th><th>Altura (m)</th>
+          <th>Volumen (m³)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td class="ub">VC EJE B ENTRE 1-21</td><td><span class="tag tag-x">X</span></td><td>30,90</td><td>0,40</td><td>0,60</td><td class="vol-hi">7,42</td></tr>
+        <tr><td>2</td><td class="ub">VC EJE C ENTRE 1-21</td><td><span class="tag tag-x">X</span></td><td>30,90</td><td>0,40</td><td>0,60</td><td class="vol-hi">7,42</td></tr>
+        <tr><td>3</td><td class="ub">VC EJE D ENTRE 11-14</td><td><span class="tag tag-x">X</span></td><td>3,40</td><td>0,40</td><td>0,60</td><td class="vol-lo">0,82</td></tr>
+        <tr><td>4</td><td class="ub">VC EJE E ENTRE 16-21</td><td><span class="tag tag-x">X</span></td><td>11,45</td><td>0,40</td><td>0,60</td><td class="vol-md">2,75</td></tr>
+        <tr><td>5</td><td class="ub">VC EJE E ENTRE 11-14</td><td><span class="tag tag-x">X</span></td><td>3,40</td><td>0,40</td><td>0,60</td><td class="vol-lo">0,82</td></tr>
+        <tr><td>6</td><td class="ub">VC EJE E ENTRE 6-9</td><td><span class="tag tag-x">X</span></td><td>4,65</td><td>0,40</td><td>0,60</td><td class="vol-lo">1,12</td></tr>
+        <tr><td>7</td><td class="ub">VC EJE E ENTRE 1-4</td><td><span class="tag tag-x">X</span></td><td>4,67</td><td>0,40</td><td>0,60</td><td class="vol-lo">1,12</td></tr>
+        <tr><td>8</td><td class="ub">VC EJE F ENTRE 14-16</td><td><span class="tag tag-x">X</span></td><td>3,06</td><td>0,40</td><td>0,60</td><td class="vol-lo">0,73</td></tr>
+        <tr><td>9</td><td class="ub">VC EJE F ENTRE 9-11</td><td><span class="tag tag-x">X</span></td><td>3,05</td><td>0,40</td><td>0,60</td><td class="vol-lo">0,73</td></tr>
+        <tr><td>10</td><td class="ub">VC EJE F ENTRE 4-6</td><td><span class="tag tag-x">X</span></td><td>3,05</td><td>0,40</td><td>0,60</td><td class="vol-lo">0,73</td></tr>
+        <tr><td>11</td><td class="ub">VC EJE G ENTRE 19-20</td><td><span class="tag tag-x">X</span></td><td>4,19</td><td>0,40</td><td>0,60</td><td class="vol-lo">1,01</td></tr>
+        <tr><td>12</td><td class="ub">VC EJE H ENTRE 9-16</td><td><span class="tag tag-x">X</span></td><td>8,71</td><td>0,40</td><td>0,60</td><td class="vol-md">2,09</td></tr>
+        <tr><td>13</td><td class="ub">VC EJE H ENTRE 4-6</td><td><span class="tag tag-x">X</span></td><td>3,05</td><td>0,40</td><td>0,60</td><td class="vol-lo">0,73</td></tr>
+        <tr><td>14</td><td class="ub">VC EJE I ENTRE 16-21</td><td><span class="tag tag-x">X</span></td><td>11,45</td><td>0,40</td><td>0,60</td><td class="vol-md">2,75</td></tr>
+        <tr><td>15</td><td class="ub">VC EJE I ENTRE 6-9</td><td><span class="tag tag-x">X</span></td><td>4,65</td><td>0,40</td><td>0,60</td><td class="vol-lo">1,12</td></tr>
+        <tr><td>16</td><td class="ub">VC EJE I ENTRE 1-4</td><td><span class="tag tag-x">X</span></td><td>4,67</td><td>0,40</td><td>0,60</td><td class="vol-lo">1,12</td></tr>
+        <tr><td>17</td><td class="ub">VC EJE K ENTRE 1-21</td><td><span class="tag tag-x">X</span></td><td>30,90</td><td>0,40</td><td>0,60</td><td class="vol-hi">7,42</td></tr>
+        <tr><td>18</td><td class="ub">VC EJE L ENTRE 1-21</td><td><span class="tag tag-x">X</span></td><td>30,90</td><td>0,40</td><td>0,60</td><td class="vol-hi">7,42</td></tr>
+      </tbody>
+      <tfoot>
+        <tr><td colspan="3"><strong>TOTAL DIRECCIÓN X</strong></td><td><strong>197,05</strong></td><td colspan="2"></td><td><strong>47,32</strong></td></tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- ── TABLA DIRECCIÓN Y ── -->
+  <div class="sec-title">Detalle de Vigas — Dirección Y (Transversales)</div>
+  <div class="tbl-card">
+    <h3>↕ 23 Vigas · Longitud Total: 198,80 m · Volumen: 42,67 m³</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Ubicación</th><th>Sentido</th>
+          <th>Longitud (m)</th><th>Ancho (m)</th><th>Altura (m)</th>
+          <th>Desc. (N Nodos)</th><th>Volumen (m³)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td class="ub">VC EJE 1 ENTRE B-L</td><td><span class="tag tag-y">Y</span></td><td>17,67</td><td>0,40</td><td>0,60</td><td><span class="desc-pill">6 nodos</span></td><td class="vol-hi">3,66</td></tr>
+        <tr><td>2</td><td class="ub">VC EJE 2 ENTRE B-C</td><td><span class="tag tag-y">Y</span></td><td>3,77</td><td>0,40</td><td>0,60</td><td><span class="desc-pill">2 nodos</span></td><td class="vol-lo">0,71</td></tr>
+        <tr><td>3</td><td class="ub">VC EJE 2 ENTRE K-L</td><td><span class="tag tag-y">Y</span></td><td>3,76</td><td>0,40</td><td>0,60</td><td><span class="desc-pill">2 nodos</span></td><td class="vol-lo">0,71</td></tr>
+        <tr><td>4</td><td class="ub">VC EJE 3 ENTRE C-E</td><td><span class="tag tag-y">Y</span></td><td>3,55</td><td>0,40</td><td>0,60</td><td>—</td><td class="vol-lo">0,85</td></tr>
+        <tr><td>5</td><td class="ub">VC EJE 3 ENTRE I-K</td><td><span class="tag tag-y">Y</span></td><td>3,55</td><td>0,40</td><td>0,60</td><td>—</td><td class="vol-lo">0,85</td></tr>
+        <tr><td>6</td><td class="ub">VC EJE 4 ENTRE C-K</td><td><span class="tag tag-y">Y</span></td><td>10,93</td><td>0,40</td><td>0,60</td><td><span class="desc-pill">4 nodos</span></td><td class="vol-md">2,24</td></tr>
+        <tr><td>7</td><td class="ub">VC EJE 6 ENTRE B-L</td><td><span class="tag tag-y">Y</span></td><td>17,67</td><td>0,40</td><td>0,60</td><td><span class="desc-pill">6 nodos</span></td><td class="vol-hi">3,66</td></tr>
+        <tr><td>8</td><td class="ub">VC EJE 7 ENTRE B-C</td><td><span class="tag tag-y">Y</span></td><td>2,97</td><td>0,40</td><td>0,60</td><td>—</td><td class="vol-lo">0,71</td></tr>
+        <tr><td>9</td><td class="ub">VC EJE 7 ENTRE K-L</td><td><span class="tag tag-y">Y</span></td><td>2,96</td><td>0,40</td><td>0,60</td><td>—</td><td class="vol-lo">0,71</td></tr>
+        <tr><td>10</td><td class="ub">VC EJE 8 ENTRE C-E</td><td><span class="tag tag-y">Y</span></td><td>3,55</td><td>0,40</td><td>0,60</td><td>—</td><td class="vol-lo">0,85</td></tr>
+        <tr><td>11</td><td class="ub">VC EJE 8 ENTRE I-K</td><td><span class="tag tag-y">Y</span></td><td>3,55</td><td>0,40</td><td>0,60</td><td>—</td><td class="vol-lo">0,85</td></tr>
+        <tr><td>12</td><td class="ub">VC EJE 9 ENTRE C-K</td><td><span class="tag tag-y">Y</span></td><td>10,93</td><td>0,40</td><td>0,60</td><td>—</td><td class="vol-md">2,62</td></tr>
+        <tr><td>13</td><td class="ub">VC EJE 11 ENTRE B-L</td><td><span class="tag tag-y">Y</span></td><td>17,67</td><td>0,40</td><td>0,60</td><td><span class="desc-pill">6 nodos</span></td><td class="vol-hi">3,66</td></tr>
+        <tr><td>14</td><td class="ub">VC EJE 12 ENTRE C-D'</td><td><span class="tag tag-y">Y</span></td><td>1,63</td><td>0,40</td><td>0,60</td><td>—</td><td class="vol-lo">0,39</td></tr>
+        <tr><td>15</td><td class="ub">VC EJE 21 ENTRE B-L</td><td><span class="tag tag-y">Y</span></td><td>17,67</td><td>0,40</td><td>0,60</td><td><span class="desc-pill">6 nodos</span></td><td class="vol-hi">3,66</td></tr>
+        <tr><td>16</td><td class="ub">VC EJE 20 ENTRE B-L</td><td><span class="tag tag-y">Y</span></td><td>17,67</td><td>0,40</td><td>0,60</td><td><span class="desc-pill">7 nodos</span></td><td class="vol-hi">3,57</td></tr>
+        <tr><td>17</td><td class="ub">VC EJE 19 ENTRE B-L</td><td><span class="tag tag-y">Y</span></td><td>17,67</td><td>0,40</td><td>0,60</td><td><span class="desc-pill">7 nodos</span></td><td class="vol-hi">3,57</td></tr>
+        <tr><td>18</td><td class="ub">VC EJE 18 ENTRE B-C</td><td><span class="tag tag-y">Y</span></td><td>2,97</td><td>0,40</td><td>0,60</td><td>—</td><td class="vol-lo">0,71</td></tr>
+        <tr><td>19</td><td class="ub">VC EJE 18 ENTRE K-L</td><td><span class="tag tag-y">Y</span></td><td>2,96</td><td>0,40</td><td>0,60</td><td>—</td><td class="vol-lo">0,71</td></tr>
+        <tr><td>20</td><td class="ub">VC EJE 17 ENTRE C-E</td><td><span class="tag tag-y">Y</span></td><td>3,55</td><td>0,40</td><td>0,60</td><td>—</td><td class="vol-lo">0,85</td></tr>
+        <tr><td>21</td><td class="ub">VC EJE 17 ENTRE I-K</td><td><span class="tag tag-y">Y</span></td><td>3,55</td><td>0,40</td><td>0,60</td><td>—</td><td class="vol-lo">0,85</td></tr>
+        <tr><td>22</td><td class="ub">VC EJE 16 ENTRE C-K</td><td><span class="tag tag-y">Y</span></td><td>10,93</td><td>0,40</td><td>0,60</td><td>—</td><td class="vol-md">2,62</td></tr>
+        <tr><td>23</td><td class="ub">VC EJE 14 ENTRE B-L</td><td><span class="tag tag-y">Y</span></td><td>17,67</td><td>0,40</td><td>0,60</td><td><span class="desc-pill">6 nodos</span></td><td class="vol-hi">3,66</td></tr>
+      </tbody>
+      <tfoot>
+        <tr><td colspan="3"><strong>TOTAL DIRECCIÓN Y</strong></td><td><strong>198,80</strong></td><td colspan="3"></td><td><strong>42,67</strong></td></tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- ── RESUMEN MATERIALES ── -->
+  <div class="sec-title">Cuantías de Materiales</div>
+  <div class="sum-grid">
+    <div class="sum-card">
+      <h3>🧱 Concreto 280 kg/cm² (28 MPa)</h3>
+      <table class="sum-table">
+        <thead><tr><th>Concepto</th><th>Dirección X</th><th>Dirección Y</th><th>Total</th></tr></thead>
+        <tbody>
+          <tr><td>N° Vigas</td><td>18</td><td>23</td><td><strong>41</strong></td></tr>
+          <tr><td>Longitud (m)</td><td>197,05</td><td>198,80</td><td><strong>395,85</strong></td></tr>
+          <tr><td>Volumen neto (m³)</td><td>47,32</td><td>42,67</td><td><strong>89,99</strong></td></tr>
+          <tr><td>Desperdicio 5%</td><td>2,37</td><td>2,13</td><td><strong>4,50</strong></td></tr>
+          <tr class="hi"><td>TOTAL CONCRETO</td><td>49,69</td><td>44,80</td><td>94,49 m³</td></tr>
+        </tbody>
+      </table>
+      <div class="note-box">📐 <strong>Sección:</strong> 0,40 × 0,60 m (uniforme en todos los elementos) · <strong>Ref.:</strong> Plano 001 Planta de Cimentación</div>
+    </div>
+    <div class="sum-card">
+      <h3>⚙️ Acero de Refuerzo — Fy = 420 MPa (60.000 PSI)</h3>
+      <table class="sum-table">
+        <thead><tr><th>Elemento</th><th>Barra No.</th><th>Longitud (m)</th><th>Kg/ml</th><th>Total (kg)</th></tr></thead>
+        <tbody>
+          <tr><td>Longitudinal</td><td>No. 3</td><td>5.507,45</td><td>0,56</td><td>3.084,17</td></tr>
+          <tr><td>Longitudinal</td><td>No. 6</td><td>2.924,15</td><td>2,235</td><td>6.535,48</td></tr>
+          <tr class="hi"><td colspan="4">SUBTOTAL ACERO</td><td>9.619,65 kg</td></tr>
+          <tr><td colspan="4"><strong>+ Desperdicio 2%</strong></td><td><strong>9.812,04 kg</strong></td></tr>
+        </tbody>
+      </table>
+      <div class="note-box">ℹ️ El acero de refuerzo se cotiza y paga en su respectivo ítem, independiente del concreto de vigas de cimentación. Ítem 2.1.</div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  Dashboard generado para Gerencia · Vigas de Cimentación · Concreto 28 MPa · Sección 0.40×0.60 m · Datos: VIGAS DE CIMENTACION.xlsx
+</footer>
+
+<script>
+  const cX = '#27ae60', cY = '#2980b9';
+
+  // 1) Grouped bar: X vs Y
+  new Chart(document.getElementById('cDirComp'), {
+    type: 'bar',
+    data: {
+      labels: ['N° Vigas', 'Longitud (m)', 'Volumen m³ (×10)'],
+      datasets: [
+        { label: 'Dirección X', data: [18, 197.05, 47.32], backgroundColor: cX, borderRadius: 6 },
+        { label: 'Dirección Y', data: [23, 198.80, 42.67], backgroundColor: cY, borderRadius: 6 }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#eee' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  // 2) Doughnut volumen
+  new Chart(document.getElementById('cDoughnut'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Dirección X — 47,32 m³', 'Dirección Y — 42,67 m³'],
+      datasets: [{
+        data: [47.32, 42.67],
+        backgroundColor: [cX, cY],
+        hoverOffset: 8, borderWidth: 3, borderColor: '#fff'
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 12 }, boxWidth: 14 } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label} (${((ctx.parsed/89.99)*100).toFixed(1)}%)` } }
+      },
+      cutout: '60%'
+    }
+  });
+
+  // 3) All vigas volume
+  const allLabels = [
+    'B 1-21','C 1-21','D 11-14','E 16-21','E 11-14','E 6-9','E 1-4',
+    'F 14-16','F 9-11','F 4-6','G 19-20','H 9-16','H 4-6','I 16-21',
+    'I 6-9','I 1-4','K 1-21','L 1-21',
+    'EJ1 B-L','EJ2 B-C','EJ2 K-L','EJ3 C-E','EJ3 I-K','EJ4 C-K',
+    'EJ6 B-L','EJ7 B-C','EJ7 K-L','EJ8 C-E','EJ8 I-K','EJ9 C-K',
+    'EJ11 B-L','EJ12 C-D\'','EJ21 B-L','EJ20 B-L','EJ19 B-L',
+    'EJ18 B-C','EJ18 K-L','EJ17 C-E','EJ17 I-K','EJ16 C-K','EJ14 B-L'
+  ];
+  const allVols = [
+    7.42,7.42,0.82,2.75,0.82,1.12,1.12,0.73,0.73,0.73,1.01,2.09,0.73,2.75,1.12,1.12,7.42,7.42,
+    3.66,0.71,0.71,0.85,0.85,2.24,3.66,0.71,0.71,0.85,0.85,2.62,3.66,0.39,3.66,3.57,3.57,0.71,0.71,0.85,0.85,2.62,3.66
+  ];
+  const allColors = [
+    ...Array(18).fill(cX),
+    ...Array(23).fill(cY)
+  ];
+
+  new Chart(document.getElementById('cAllVigas'), {
+    type: 'bar',
+    data: {
+      labels: allLabels,
+      datasets: [{
+        label: 'Volumen (m³)',
+        data: allVols,
+        backgroundColor: allColors,
+        borderRadius: 4, borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y} m³` } }
+      },
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#eee' }, title: { display: true, text: 'm³' } },
+        x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 45 } }
+      }
+    }
+  });
+
+  // 4) Longitudes X
+  new Chart(do

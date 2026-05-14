@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Torre Santa Isabel — Portal de Cómputos y Cantidades</title>
+  <style>
+    :root {
+      --ink:    #0f1f2e;
+      --ink2:   #1c3a52;
+      --orange: #e67e22;
+      --yellow: #f1c40f;
+      --green:  #27ae60;
+      --blue:   #2980b9;
+      --red:    #c0392b;
+      --purple: #8e44ad;
+      --teal:   #148f77;
+      --light:  #f0f3f7;
+      --card:   #ffffff;
+      --border: #d5dde8;
+      --muted:  #7f8c8d;
+      --shadow: 0 6px 24px rgba(15,31,46,.12);
+      --shadow-hover: 0 12px 40px rgba(15,31,46,.22);
+    }
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    html { scroll-behavior: smooth; }
+    body { font-family:'Segoe UI',Arial,sans-serif; background:var(--light); color:var(--ink); font-size:14px; }
+
+    /* ══════════════════════════════
+       HERO / PORTADA
+    ══════════════════════════════ */
+    .hero {
+      position: relative;
+      height: 560px;
+      overflow: hidden;
+      background: var(--ink);
+    }
+    /* Carrusel de renders */
+    .hero-slides { width:100%; height:100%; position:relative; }
+    .hero-slide {
+      position: absolute; inset: 0;
+      background-size: cover;
+      background-position: center;
+      opacity: 0;
+      transition: opacity 1s ease;
+    }
+    .hero-slide.active { opacity: 1; }
+    /* Slide 1: render 1 */
+    .hero-slide:nth-child(1) {
+      background-image: url('render1.jpg');
+      background-color: #0f2035;
+    }
+    /* Slide 2: render 2 */
+    .hero-slide:nth-child(2) {
+      background-image: url('render2.jpg');
+      background-color: #162840;
+    }
+    /* Overlay degradado */
+    .hero-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(
+        135deg,
+        rgba(10,20,35,.82) 0%,
+        rgba(10,20,35,.55) 50%,
+        rgba(230,126,34,.20) 100%
+      );
+      z-index: 1;
+    }
+    /* Patrón diagonal sobre el overlay */
+    .hero-overlay::after {
+      content: '';
+      position: absolute; inset: 0;
+      background-image: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 30px,
+        rgba(255,255,255,.02) 30px,
+        rgba(255,255,255,.02) 31px
+      );
+    }
+    /* Contenido hero */
+    .hero-content {
+      position: absolute; inset: 0; z-index: 2;
+      display: flex; flex-direction: column;
+      justify-content: flex-end;
+      padding: 0 60px 44px;
+    }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--orange); color: #fff;
+      font-size: 11px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 1.5px; padding: 5px 14px; border-radius: 4px;
+      margin-bottom: 14px; width: fit-content;
+    }
+    .hero-title {
+      font-size: 52px; font-weight: 900; color: #fff;
+      line-height: 1.05; letter-spacing: -.5px;
+      text-shadow: 0 2px 20px rgba(0,0,0,.4);
+      margin-bottom: 10px;
+    }
+    .hero-title span { color: var(--orange); }
+    .hero-sub {
+      font-size: 15px; color: rgba(255,255,255,.80);
+      max-width: 600px; line-height: 1.6; margin-bottom: 20px;
+    }
+    .hero-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+    .hero-pill {
+      padding: 5px 14px; border-radius: 20px;
+      font-size: 11.5px; font-weight: 700;
+      background: rgba(255,255,255,.14);
+      color: #fff; border: 1px solid rgba(255,255,255,.25);
+      backdrop-filter: blur(4px);
+    }
+    /* Dots carrusel */
+    .hero-dots {
+      position: absolute; bottom: 16px; right: 60px; z-index: 3;
+      display: flex; gap: 6px;
+    }
+    .hero-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: rgba(255,255,255,.40); cursor: pointer;
+      transition: all .3s;
+    }
+    .hero-dot.active { background: var(--orange); width: 24px; border-radius: 4px; }
+    /* Imagen fallback cuando no hay renders */
+    .hero-slide:not([style*="url"]) {
+      background: linear-gradient(135deg, #0f2035 0%, #1c3a52 40%, #1a4060 70%, #0f2035 100%);
+    }
+    /* Indicador de carga de imagen */
+    .hero-img-hint {
+      position: absolute; top: 16px; right: 16px; z-index: 3;
+      background: rgba(0,0,0,.5); color: rgba(255,255,255,.7);
+      font-size: 10px; padding: 4px 10px; border-radius: 4px;
+      display: none;
+    }
+
+    /* ══════════════════════════════
+       BARRA RESUMEN PROYECTO
+    ══════════════════════════════ */
+    .proj-bar {
+      background: var(--ink2);
+      display: flex; gap: 0;
+    }
+    .proj-stat {
+      flex: 1; padding: 12px 0; text-align: center;
+      border-right: 1px solid rgba(255,255,255,.10);
+    }
+    .proj-stat:last-child { border-right: none; }
+    .proj-stat .v {
+      font-size: 20px; font-weight: 900; color: #fff;
+      line-height: 1;
+    }
+    .proj-stat .l {
+      font-size: 9.5px; color: rgba(255,255,255,.55);
+      text-transform: uppercase; letter-spacing: .5px; margin-top: 3px;
+    }
+    .proj-stat.hi .v { color: var(--orange); }
+
+    /* ══════════════════════════════
+       MAIN
+    ══════════════════════════════ */
+    main { max-width: 1400px; margin: auto; padding: 36px 48px 60px; }
+
+    /* ══ SECTION TITLE ══ */
+    .sec {
+      font-size: 11px; font-weight: 900; color: var(--ink);
+      text-transform: uppercase; letter-spacing: 1.4px;
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 20px;
+    }
+    .sec::after { content:''; flex:1; height:2px; background:linear-gradient(90deg,var(--border),transparent); }
+    .sec-badge {
+      background: var(--orange); color: #fff;
+      font-size: 10px; padding: 2px 8px; border-radius: 3px;
+      font-weight: 800;
+    }
+
+    /* ══ PROGRESO ══ */
+    .progress-bar-wrap {
+      background: var(--card); border-radius: 12px;
+      padding: 20px 28px; box-shadow: var(--shadow);
+      margin-bottom: 32px;
+      display: flex; align-items: center; gap: 28px;
+    }
+    .prog-label { font-size: 13px; font-weight: 700; color: var(--ink); white-space: nowrap; }
+    .prog-track { flex:1; background: var(--border); border-radius: 20px; height: 12px; overflow:hidden; }
+    .prog-fill {
+      height: 100%; border-radius: 20px;
+      background: linear-gradient(90deg, var(--green), #2ecc71);
+      width: 50%;
+      position: relative; overflow: hidden;
+    }
+    .prog-fill::after {
+      content: '';
+      position: absolute; top:0; left:-100%;
+      width: 60%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.3), transparent);
+      animation: shimmer 2s infinite;
+    }
+    @keyframes shimmer { to { left: 200%; } }
+    .prog-pct { font-size: 22px; font-weight: 900; color: var(--green); white-space: nowrap; }
+    .prog-text { font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+    /* ══ DASHBOARD GRID ══ */
+    .dash-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+      margin-bottom: 40px;
+    }
+
+    /* ── CARD ACTIVA ── */
+    .dash-card {
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      text-decoration: none;
+      color: inherit;
+      display: flex; flex-direction: column;
+      transition: transform .2s ease, box-shadow .2s ease;
+      border: 2px solid transparent;
+    }
+    .dash-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-hover);
+      border-color: var(--orange);
+      text-decoration: none;
+    }
+    .card-thumb {
+      height: 140px;
+      position: relative;
+      overflow: hidden;
+    }
+    .card-thumb-bg {
+      position: absolute; inset: 0;
+      background-size: cover; background-position: center;
+      transition: transform .4s ease;
+    }
+    .dash-card:hover .card-thumb-bg { transform: scale(1.06); }
+    .card-thumb-overlay {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .card-icon { font-size: 52px; line-height: 1; filter: drop-shadow(0 2px 6px rgba(0,0,0,.4)); }
+    .card-status-badge {
+      position: absolute; top: 12px; right: 12px;
+      background: var(--green); color: #fff;
+      font-size: 10px; font-weight: 800; padding: 3px 10px;
+      border-radius: 20px; text-transform: uppercase; letter-spacing: .5px;
+    }
+    .card-status-badge.pending {
+      background: rgba(0,0,0,.40);
+    }
+    .card-body { padding: 20px 22px; flex: 1; }
+    .card-num {
+      font-size: 10px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .8px; color: var(--muted); margin-bottom: 4px;
+    }
+    .card-title {
+      font-size: 16px; font-weight: 800; color: var(--ink);
+      line-height: 1.2; margin-bottom: 6px;
+    }
+    .card-desc { font-size: 12px; color: var(--muted); line-height: 1.5; margin-bottom: 14px; }
+    /* Mini stats en la tarjeta */
+    .card-stats { display: flex; gap: 0; border-top: 1px solid var(--border); margin: 0 -22px; padding: 0 22px; }
+    .card-stat { flex:1; padding: 10px 0; text-align: center; border-right: 1px solid var(--border); }
+    .card-stat:last-child { border-right: none; }
+    .card-stat .sv { font-size: 14px; font-weight: 800; color: var(--ink); }
+    .card-stat .sl { font-size: 9.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; margin-top: 1px; }
+    /* Botón de la tarjeta */
+    .card-footer {
+      padding: 14px 22px;
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .card-btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: 12px; font-weight: 700; color: var(--ink2);
+      background: var(--light); border-radius: 8px;
+      padding: 7px 16px; transition: all .15s;
+    }
+    .dash-card:hover .card-btn {
+      background: var(--orange); color: #fff;
+    }
+    .card-date { font-size: 10.5px; color: var(--muted); }
+
+    /* ── CARD PENDIENTE ── */
+    .dash-card.pending {
+      opacity: .72;
+      cursor: default;
+      border: 2px dashed var(--border);
+      box-shadow: none;
+    }
+    .dash-card.pending:hover {
+      transform: none;
+      box-shadow: none;
+      border-color: var(--border);
+    }
+    .dash-card.pending .card-btn {
+      background: var(--border); color: var(--muted); cursor: default;
+    }
+    .coming-soon-tag {
+      position: absolute; top: 12px; left: 12px;
+      background: rgba(0,0,0,.55); color: rgba(255,255,255,.8);
+      font-size: 10px; font-weight: 700; padding: 3px 10px;
+      border-radius: 20px; backdrop-filter: blur(4px);
+    }
+
+    /* Colores thumb por tipo */
+    .thumb-pilotes  { background: linear-gradient(135deg,#1a3c5e,#2c5f8a,#1a3c5e); }
+    .thumb-vigas    { background: linear-gradient(135deg,#1b3d6e,#2a5298,#16a085); }
+    .thumb-placas   { background: linear-gradient(135deg,#1c2b3a,#1c3d5c,#c0392b 120%); }
+    .thumb-muros    { background: linear-gradient(135deg,#2d2d2d,#4a4a4a,#6d6d6d); }
+    .thumb-tanque   { background: linear-gradient(135deg,#0a3d62,#1e6fa5,#85c1e9 120%); }
+    .thumb-cubierta { background: linear-gradient(135deg,#1c3a1c,#27ae60,#f39c12 120%); }
+
+    /* ══ RESUMEN CONSOLIDADO ══ */
+    .resumen-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+      margin-bottom: 40px;
+    }
+    .res-card {
+      background: var(--card); border-radius: 14px;
+      padding: 24px 28px; box-shadow: var(--shadow);
+    }
+    .res-card h3 {
+      font-size: 13px; font-weight: 800; color: var(--ink);
+      margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+    }
+    .res-table { width:100%; border-collapse:collapse; font-size: 12.5px; }
+    .res-table th {
+      background: #f0f3f7; color: var(--ink); padding: 7px 12px;
+      text-align: left; font-size: 11px; font-weight: 800;
+      border-bottom: 2px solid var(--border); text-transform: uppercase;
+      letter-spacing: .3px;
+    }
+    .res-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+    .res-table tr:last-child td { font-weight: 800; background: #e8f4fd; color: var(--ink2); }
+    .res-table .pending-row td { color: var(--muted); font-style: italic; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:10.5px; font-weight:700; }
+    .b-green { background:#d5f5e3; color:#1e8449; }
+    .b-gray  { background:#f0f3f7; color:var(--muted); }
+
+    /* Donut sintético */
+    .donut-wrap { display:flex; align-items:center; gap:24px; }
+    .donut-svg { flex-shrink:0; }
+    .donut-legend { flex:1; }
+    .dleg-item { display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:12px; }
+    .dleg-sq { width:12px; height:12px; border-radius:3px; flex-shrink:0; }
+    .dleg-val { margin-left:auto; font-weight:700; font-size:12px; }
+
+    /* ══ UPLOAD RENDERS ══ */
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 12px; padding: 22px 28px;
+      display: flex; align-items: center; gap: 18px;
+      background: var(--card); box-shadow: var(--shadow);
+      margin-bottom: 32px;
+    }
+    .upload-icon { font-size: 40px; flex-shrink:0; }
+    .upload-text h4 { font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+    .upload-text p  { font-size: 12px; color: var(--muted); }
+    .upload-btns { margin-left:auto; display:flex; gap:8px; }
+    .upload-btn {
+      padding: 8px 18px; border-radius: 8px; font-size: 12px;
+      font-weight: 700; cursor: pointer; border: none; transition: all .15s;
+    }
+    .upload-btn-1 { background: var(--orange); color: #fff; }
+    .upload-btn-1:hover { background: #ca6f1e; }
+    .upload-btn-2 { background: var(--light); color: var(--ink); border: 1px solid var(--border); }
+    .upload-btn-2:hover { background: var(--border); }
+    #fileInput1, #fileInput2 { display:none; }
+
+    /* ══ FOOTER ══ */
+    footer {
+      background: var(--ink);
+      color: rgba(255,255,255,.6);
+      text-align: center; font-size: 11.5px;
+      padding: 20px 40px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    footer strong { color: var(--orange); }
+    .footer-links { display:flex; gap:16px; }
+    .footer-links a {
+      color: rgba(255,255,255,.55); font-size: 11px;
+      text-decoration: none; transition: color .15s;
+    }
+    .footer-links a:hover { color: var(--orange); }
+
+    @media (max-width:1000px) {
+      .dash-grid { grid-template-columns:1fr 1fr; }
+      .resumen-grid { grid-template-columns:1fr; }
+      .hero-title { font-size:36px; }
+      main { padding:24px 20px; }
+    }
+    @media (max-width:600px) {
+      .dash-grid { grid-template-columns:1fr; }
+      .hero { height:440px; }
+      .hero-content { padding: 0 24px 32px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════ HERO ══════════ -->
+<div class="hero">
+  <div class="hero-slides">
+    <div class="hero-slide active" id="slide1"></div>
+    <div class="hero-slide" id="slide2"></div>
+  </div>
+  <div class="hero-overlay"></div>
+  <div class="hero-content">
+    <div class="hero-eyebrow">🏗️ Proyecto en ejecución</div>
+    <h1 class="hero-title">Torre<br><span>Santa Isabel</span></h1>
+    <p class="hero-sub">
+      Portal de Cómputos, Cantidades y Presupuesto · Cimentación &amp; Estructura<br>
+      Concreto 28 MPa · Acero Fy = 420 MPa · 12 Pisos + Cubierta
+    </p>
+    <div class="hero-pills">
+      <span class="hero-pill">📐 Cimentación Profunda</span>
+      <span class="hero-pill">🏛️ Vigas de Cimentación</span>
+      <span class="hero-pill">🏢 13 Niveles</span>
+      <span class="hero-pill">⚙️ Acero Fy 420 MPa</span>
+      <span class="hero-pill">🧱 Concreto 210–280 kg/cm²</span>
+    </div>
+  </div>
+  <div class="hero-dots">
+    <div class="hero-dot active" onclick="goSlide(0)"></div>
+    <div class="hero-dot" onclick="goSlide(1)"></div>
+  </div>
+</div>
+
+<!-- ══ BARRA ESTADÍSTICAS PROYECTO ══ -->
+<div class="proj-bar">
+  <div class="proj-stat"><div class="v">147</div><div class="l">Pilotes Ø0,40m</div></div>
+  <div class="proj-stat"><div class="v">41</div><div class="l">Vigas Ciment.</div></div>
+  <div class="proj-stat"><div class="v">13</div><div class="l">Niveles / Placas</div></div>
+  <div class="proj-stat hi"><div class="v">939</div><div class="l">m³ Concreto Total*</div></div>
+  <div class="proj-stat hi"><div class="v">80.943</div><div class="l">kg Acero Total*</div></div>
+  <div class="proj-stat"><div class="v">5.395</div><div class="l">m² Área Placas</div></div>
+  <div class="proj-stat"><div class="v">12+CB</div><div class="l">Pisos + Cubierta</div></div>
+  <div class="proj-stat"><div class="v">3/6</div><div class="l">Ítems Cargados</div></div>
+</div>
+
+<main>
+
+  <!-- ══ CARGA DE RENDERS ══ -->
+  <div class="upload-zone">
+    <div class="upload-icon">🖼️</div>
+    <div class="upload-text">
+      <h4>Renders del Proyecto — Torre Santa Isabel</h4>
+      <p>Cargue las imágenes de renders para visualizarlas en la portada. Se guardan solo en esta sesión del navegador.</p>
+    </div>
+    <div class="upload-btns">
+      <input type="file" id="fileInput1" accept="image/*" onchange="loadRender(this,1)">
+      <input type="file" id="fileInput2" accept="image/*" onchange="loadRender(this,2)">
+      <button class="upload-btn upload-btn-1" onclick="document.getElementById('fileInput1').click()">📷 Render 1</button>
+      <button class="upload-btn upload-btn-2" onclick="document.getElementById('fileInput2').click()">📷 Render 2</button>
+    </div>
+  </div>
+
+  <!-- ══ PROGRESO ══ -->
+  <div class="sec"><span>Progreso de Carga de Ítems</span><span class="sec-badge">3 de 6</span></div>
+  <div class="progress-bar-wrap">
+    <span class="prog-label">Ítems completados</span>
+    <div class="prog-track"><div class="prog-fill"></div></div>
+    <span class="prog-pct">50%</span>
+    <span class="prog-text">3 activos · 3 pendientes</span>
+  </div>
+
+  <!-- ══ DASHBOARDS GRID ══ -->
+  <div class="sec"><span>Dashboards por Ítem</span></div>
+  <div class="dash-grid">
+
+    <!-- ── 1. PILOTES ── -->
+    <a href="PILOTES_Dashboard.html" class="dash-card">
+      <div class="card-thumb">
+        <div class="card-thumb-bg thumb-pilotes"></div>
+        <div class="card-thumb-overlay">
+          <span class="card-icon">🏗️</span>
+        </div>
+        <span class="card-status-badge">✓ Activo</span>
+      </div>
+      <div class="card-body">
+        <div class="card-num">Ítem 1 · Cimentación Profunda</div>
+        <div class="card-title">Pilotes de Cimentación</div>
+        <div class="card-desc">Concreto 28 MPa · Ø 0,40 m · 5 tipologías de longitud (7–12 m) · 21 ejes dirección Y</div>
+        <div class="card-stats">
+          <div class="card-stat"><div class="sv">147</div><div class="sl">Pilotes</div></div>
+          <div class="card-stat"><div class="sv">165 m³</div><div class="sl">Concreto</div></div>
+          <div class="card-stat"><div class="sv">16.541 kg</div><div class="sl">Acero</div></div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="card-btn">Ver Dashboard →</span>
+        <span class="card-date">✅ Disponible</span>
+      </div>
+    </a>
+
+    <!-- ── 2. VIGAS CIMENTACIÓN ── -->
+    <a href="VIGAS_CIMENTACION_Dashboard.html" class="dash-card">
+      <div class="card-thumb">
+        <div class="card-thumb-bg thumb-vigas"></div>
+        <div class="card-thumb-overlay">
+          <span class="card-icon">🏛️</span>
+        </div>
+        <span class="card-status-badge">✓ Activo</span>
+      </div>
+      <div class="card-body">
+        <div class="card-num">Ítem 2 · Estructura de Cimentación</div>
+        <div class="card-title">Vigas de Cimentación</div>
+        <div class="card-desc">Concreto 28 MPa · Sección 0,40×0,60 m · 41 vigas en ejes X e Y · Plano 001</div>
+        <div class="card-stats">
+          <div class="card-stat"><div class="sv">41</div><div class="sl">Vigas</div></div>
+          <div class="card-stat"><div class="sv">94 m³</div><div class="sl">Concreto</div></div>
+          <div class="card-stat"><div class="sv">9.812 kg</div><div class="sl">Acero</div></div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="card-btn">Ver Dashboard →</span>
+        <span class="card-date">✅ Disponible</span>
+      </div>
+    </a>
+
+    <!-- ── 3. PLACAS ENTREPISO ── -->
+    <a href="PLACAS_ENTREPISO_Dashboard.html" class="dash-card">
+      <div class="card-thumb">
+        <div class="card-thumb-bg thumb-placas"></div>
+        <div class="card-thumb-overlay">
+          <span class="card-icon">🏢</span>
+        </div>
+        <span class="card-status-badge">✓ Activo</span>
+      </div>
+      <div class="card-body">
+        <div class="card-num">Ítem 3 · Estructura de Pisos</div>
+        <div class="card-title">Placas de Entrepiso y Contrapiso</div>
+        <div class="card-desc">Concreto 210/245/280 kg/cm² · e=0,12 m · 13 niveles (P1–P12 + Cubierta)</div>
+        <div class="card-stats">
+          <div class="card-stat"><div class="sv">5.395 m²</div><div class="sl">Área</div></div>
+          <div class="card-stat"><div class="sv">680 m³</div><div class="sl">Concreto</div></div>
+          <div class="card-stat"><div class="sv">54.590 kg</div><div class="sl">Acero</div></div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="card-btn">Ver Dashboard →</span>
+        <span class="card-date">✅ Disponible</span>
+      </div>
+    </a>
+
+    <!-- ── 4. MUROS (PENDIENTE) ── -->
+    <div class="dash-card pending">
+      <div class="card-thumb">
+        <div class="card-thumb-bg thumb-muros"></div>
+        <div class="card-thumb-overlay">
+          <span class="card-icon">🧱</span>
+        </div>
+        <span class="coming-soon-tag">⏳ Próximamente</span>
+      </div>
+      <div class="card-body">
+        <div class="card-num">Ítem 4 · Estructura Vertical</div>
+        <div class="card-title">Muros Estructurales</div>
+        <div class="card-desc">Pendiente de carga de Excel · Concreto estructural · Cálculo de volúmenes y acero por piso</div>
+        <div class="card-stats">
+          <div class="card-stat"><div class="sv">—</div><div class="sl">m³ Concreto</div></div>
+          <div class="card-stat"><div class="sv">—</div><div class="sl">m² Área</div></div>
+          <div class="card-stat"><div class="sv">—</div><div class="sl">kg Acero</div></div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="card-btn">⏳ Pendiente</span>
+        <span class="card-date">Cargue el Excel</span>
+      </div>
+    </div>
+
+    <!-- ── 5. TANQUE AGUA POTABLE (PENDIENTE) ── -->
+    <div class="dash-card pending">
+      <div class="card-thumb">
+        <div class="card-thumb-bg thumb-tanque"></div>
+        <div class="card-thumb-overlay">
+          <span class="card-icon">💧</span>
+        </div>
+        <span class="coming-soon-tag">⏳ Próximamente</span>
+      </div>
+      <div class="card-body">
+        <div class="card-num">Ítem 5 · Instalaciones</div>
+        <div class="card-title">Tanque de Agua Potable</div>
+        <div class="card-desc">Pendiente de carga de Excel · Estructura del tanque · Concreto y acero de refuerzo</div>
+        <div class="card-stats">
+          <div class="card-stat"><div class="sv">—</div><div class="sl">m³ Concreto</div></div>
+          <div class="card-stat"><div class="sv">—</div><div class="sl">Capacidad L</div></div>
+          <div class="card-stat"><div class="sv">—</div><div class="sl">kg Acero</div></div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="card-btn">⏳ Pendiente</span>
+        <span class="card-date">Cargue el Excel</span>
+      </div>
+    </div>
+
+    <!-- ── 6. CUBIERTA (PENDIENTE) ── -->
+    <div class="dash-card pending">
+      <div class="card-thumb">
+        <div class="card-thumb-bg thumb-cubierta"></div>
+        <div class="card-thumb-overlay">
+          <span class="card-icon">🏠</span>
+        </div>
+        <span class="coming-soon-tag">⏳ Próximamente</span>
+      </div>
+      <div class="card-body">
+        <div class="card-num">Ítem 6 · Cubierta</div>
+        <div class="card-title">Cubierta y Terraza</div>
+        <div class="card-desc">Pendiente de carga de Excel · Losa de cubierta · Impermeabilización y acabados finales</div>
+        <div class="card-stats">
+          <div class="card-stat"><div class="sv">—</div><div class="sl">m² Área</div></div>
+          <div class="card-stat"><div class="sv">—</div><div class="sl">m³ Concreto</div></div>
+          <div class="card-stat"><div class="sv">—</div><div class="sl">kg Acero</div></div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="card-btn">⏳ Pendiente</span>
+        <span class="card-date">Cargue el Excel</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ RESUMEN CONSOLIDADO ══ -->
+  <div class="sec"><span>Resumen Consolidado de Materiales</span><span class="sec-badge">Ítems 1–3</span></div>
+  <div class="resumen-grid">
+
+    <div class="res-card">
+      <h3>🧱 Concreto Estructural — Volumen Total por Ítem</h3>
+      <table class="res-table">
+        <thead><tr><th>Ítem</th><th>Elemento</th><th>Vol. Neto (m³)</th><th>+ Desp. (m³)</th><th>Estado</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td><td>Pilotes Ø0,40 m</td><td>157,21</td><td>165,07</td>
+            <td><span class="badge b-green">✓ Cargado</span></td>
+          </tr>
+          <tr>
+            <td>2</td><td>Vigas de Cimentación</td><td>89,99</td><td>94,49</td>
+            <td><span class="badge b-green">✓ Cargado</span></td>
+          </tr>
+          <tr>
+            <td>3</td><td>Placas Entrepiso / Contrapiso</td><td>647,40</td><td>679,77</td>
+            <td><span class="badge b-green">✓ Cargado</span></td>
+          </tr>
+          <tr class="pending-row">
+            <td>4</td><td>Muros Estructurales</td><td>—</td><td>—</td>
+            <td><span class="badge b-gray">⏳ Pendiente</span></td>
+          </tr>
+          <tr class="pending-row">
+            <td>5</td><td>Tanque de Agua Potable</td><td>—</td><td>—</td>
+            <td><span class="badge b-gray">⏳ Pendiente</span></td>
+          </tr>
+          <tr class="pending-row">
+            <td>6</td><td>Cubierta</td><td>—</td><td>—</td>
+            <td><span class="badge b-gray">⏳ Pendiente</span></td>
+          </tr>
+          <tr>
+            <td colspan="2"><strong>SUBTOTAL (Ítems 1–3)</strong></td>
+            <td><strong>894,60 m³</strong></td>
+            <td><strong>939,33 m³</strong></td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="res-card">
+      <h3>⚙️ Acero de Refuerzo — Total por Ítem</h3>
+      <table class="res-table">
+        <thead><tr><th>Ítem</th><th>Elemento</th><th>Acero Neto (kg)</th><th>+ Desp. (kg)</th><th>Estado</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td><td>Pilotes Ø0,40 m</td><td>16.216,74</td><td>16.541,07</td>
+            <td><span class="badge b-green">✓ Cargado</span></td>
+          </tr>
+          <tr>
+            <td>2</td><td>Vigas de Cimentación</td><td>9.619,65</td><td>9.812,04</td>
+            <td><span class="badge b-green">✓ Cargado</span></td>
+          </tr>
+          <tr>
+            <td>3</td><td>Placas Entrepiso / Contrapiso</td><td>53.520,00</td><td>54.590,40</td>
+            <td><span class="badge b-green">✓ Cargado</span></td>
+          </tr>
+          <tr class="pending-row">
+            <td>4</td><td>Muros Estructurales</td><td>—</td><td>—</td>
+            <td><span class="badge b-gray">⏳ Pendiente</span></td>
+          </tr>
+          <tr class="pending-row">
+            <td>5</td><td>Tanque de Agua Potable</td><td>—</td><td>—</td>
+            <td><span class="badge b-gray">⏳ Pendiente</span></td>
+          </tr>
+          <tr class="pending-row">
+            <td>6</td><td>Cubierta</td><td>—</td><td>—</td>
+            <td><span class="badge b-gray">⏳ Pendiente</span></td>
+          </tr>
+          <tr>
+            <td colspan="2"><strong>SUBTOTAL (Ítems 1–3)</strong></td>
+            <td><strong>79.356,39 kg</strong></td>
+            <td><strong>80.943,51 kg</strong></td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- ══ NOTA PIE ══ -->
+  <div style="background:var(--card);border-radius:10px;padding:16px 22px;box-shadow:var(--shadow);font-size:12px;color:var(--muted);display:flex;gap:10px;align-items:flex-start;">
+    <span style="font-size:20px">ℹ️</span>
+    <div>
+      <strong style="color:var(--ink)">Nota:</strong> Los totales marcados con * corresponden únicamente a los ítems 1, 2 y 3 actualmente cargados.
+      Los volúmenes de acero se contabilizan en el ítem correspondiente de refuerzo y son independientes de los ítems de concreto.
+      Al cargar los ítems 4, 5 y 6 (Muros, Tanque, Cubierta), los totales se actualizarán automáticamente.
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <div>
+    <strong>Torre Santa Isabel</strong> · Portal de Cómputos y Cantidades · Estructura en Concreto y Acero
+  </div>
+  <div class="footer-links">
+    <a href="PILOTES_Dashboard.html">Pilotes</a>
+    <a href="VIGAS_CIMENTACION_Dashboard.html">Vigas</a>
+    <a href="PLACAS_ENTREPISO_Dashboard.html">Placas</a>
+  </div>
+</footer>
+
+<script>
+  // ═══ CARRUSEL ═══
+  let currentSlide = 0;
+  const slides = document.querySelectorAll('.hero-slide');
+  const dots   = document.querySelectorAll('.hero-dot');
+
+  function goSlide(n) {
+    slides[currentSlide].classList.remove('active');
+    dots[currentSlide].classList.remove('active');
+    currentSlide = n;
+    slides[currentSlide].classList.add('active');
+    dots[currentSlide].classList.add('active');
+  }
+
+  // Auto-avance cada 5 segundos
+  setInterval(() => {
+    goSlide((currentSlide + 1) % slides.length);
+  }, 5000);
+
+  // ═══ CARGA DE RENDERS ═══
+  function loadRender(input, num) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const slide = document.getElementById('slide' + num);
+      slide.style.backgroundImage = `url('${e.target.result}')`;
+      // Actualizar también las tarjetas de dashboard con el render
+      if (num === 1) {
+        document.querySelectorAll('.thumb-pilotes, .thumb-vigas').forEach(el => {
+          el.style.backgroundImage = `url('${e.target.result}')`;
+        });
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // ═══ TARJETAS PENDIENTES — efecto hover ═══
+  document.querySelectorAll('.dash-card.pending').forEach(card => {
+    card.addEventListener('mouseenter', () => {
+      card.style.borderColor = '#bdc3c7';
+      card.style.opacity = '.85';
+    });
+    card.addEventListener('mouseleave', () => {
+      card.style.borderColor = '';
+      card.style.opacity = '.72';
+    });
+  });
+</script>
+
+</body>
+</html>
